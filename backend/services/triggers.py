@@ -12,11 +12,11 @@ from services.analytics import classify_stress
 NEGATIVE_MOODS = {"sad", "anxious", "overwhelmed", "low"}
 
 
-def detect_triggers() -> list[dict[str, Any]]:
+def detect_triggers(user_id: int) -> list[dict[str, Any]]:
     """Evaluate active wellness triggers for micro-interventions."""
-    latest = data_store.get_latest()
-    mood = data_store.get_latest_mood()
-    history = data_store.get_history(limit=60)
+    latest = data_store.get_latest(user_id)
+    mood = data_store.get_latest_mood(user_id)
+    history = data_store.get_history(user_id, limit=60)
     anomalies = detect_anomalies(history)
     triggers: list[dict[str, Any]] = []
 
@@ -69,7 +69,7 @@ def detect_triggers() -> list[dict[str, Any]]:
             }
         )
 
-    latest_journal = data_store.get_journal_entries(limit=1)
+    latest_journal = data_store.get_journal_entries(user_id, limit=1)
     if anomalies and latest_journal:
         j = latest_journal[0]
         emo = j.get("extracted_emotion", "")
@@ -92,11 +92,11 @@ def detect_triggers() -> list[dict[str, Any]]:
     return triggers
 
 
-def narrative_stage() -> dict[str, str]:
+def narrative_stage(user_id: int) -> dict[str, str]:
     """Day-in-the-life journey stage for UI narrative."""
-    latest = data_store.get_latest()
+    latest = data_store.get_latest(user_id)
     stress = int(latest.get("stress_level", 0))
-    triggers = detect_triggers()
+    triggers = detect_triggers(user_id)
 
     if any(t["severity"] == "high" for t in triggers):
         stage = "intervention"

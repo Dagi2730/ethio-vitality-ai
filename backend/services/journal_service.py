@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 from google import genai
 
 from services import data_store
-from services.rag_context import get_rag_context
 
 load_dotenv(override=True)
 
@@ -66,9 +65,10 @@ def _extract_emotion(text: str) -> dict[str, Any]:
         }
 
 
-def create_journal_entry(text: str, *, source: str = "text") -> dict[str, Any]:
+def create_journal_entry(user_id: int, text: str, *, source: str = "text") -> dict[str, Any]:
     analysis = _extract_emotion(text)
     entry = data_store.add_journal_entry(
+        user_id=user_id,
         text=text,
         source=source,
         extracted_emotion=analysis["extracted_emotion"],

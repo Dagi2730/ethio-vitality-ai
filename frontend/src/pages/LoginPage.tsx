@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { login as apiLogin } from "../api/client";
+import { login as apiLogin, signup as apiSignup } from "../api/client";
 import { getHomeForRole, redirectPathForRole } from "../config/roleRoutes";
 import { SanctuaryMesh } from "../components/sanctuary/SanctuaryMesh";
 import { useAuthStore, type AppRole } from "../store/authStore";
@@ -11,19 +11,37 @@ const DEMO_ACCOUNTS = [
   { email: "doctor@ethio.dev", password: "doc123", label: "Doctor · Clinical", role: "doctor" as AppRole },
 ];
 
+type Mode = "login" | "signup";
+
 export function LoginPage() {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const authLogin = useAuthStore((s) => s.login);
 
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [department, setDepartment] = useState("General");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   if (isAuthenticated && user) {
     return <Navigate to={getHomeForRole(user.role)} replace />;
+  }
+
+  async function completeAuth(res: Awaited<ReturnType<typeof apiLogin>>) {
+    const role = res.user.role as AppRole;
+    authLogin(res.access_token, {
+      email: res.user.email,
+      role,
+      name: res.user.name,
+      user_id: res.user.user_id,
+      department: res.user.department,
+    });
+    const dest = redirectPathForRole(role, getHomeForRole(role));
+    navigate(dest, { replace: true });
   }
 
   async function submit(e: FormEvent, creds?: { email: string; password: string }) {
@@ -33,13 +51,15 @@ export function LoginPage() {
     const em = creds?.email ?? email;
     const pw = creds?.password ?? password;
     try {
-      const res = await apiLogin(em, pw);
-      const profile = res.user as { email: string; role: AppRole; name: string };
-      authLogin(res.access_token, profile);
-      const dest = redirectPathForRole(profile.role, getHomeForRole(profile.role));
-      navigate(dest, { replace: true });
-    } catch {
-      setError("Invalid email or password. Try a demo account below.");
+      if (mode === "signup" && !creds) {
+        const res = await apiSignup(em, pw, name, department);
+        await completeAuth(res);
+      } else {
+        const res = await apiLogin(em, pw);
+        await completeAuth(res);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -61,10 +81,60 @@ export function LoginPage() {
         </div>
 
         <div className="glass-card">
-          <h1 className="font-display text-xl font-medium text-ink">Welcome</h1>
-          <p className="mt-1 text-sm text-ink-muted">Sign in to your sanctuary</p>
+          <div className="flex gap-2 rounded-2xl bg-white/50 p-1">
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={`flex-1 rounded-xl py-2 text-sm font-medium transition ${
+                mode === "login" ? "bg-teal text-white" : "text-ink-muted"
+              }`}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("signup")}
+              className={`flex-1 rounded-xl py-2 text-sm font-medium transition ${
+                mode === "signup" ? "bg-teal text-white" : "text-ink-muted"
+              }`}
+            >
+              Sign up
+            </button>
+          </div>
+
+          <h1 className="mt-4 font-display text-xl font-medium text-ink">
+            {mode === "login" ? "Welcome back" : "Create your account"}
+          </h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            {mode === "login"
+              ? "Sign in to your sanctuary"
+              : "Register as a personal wellness user (8+ char password with letters & numbers)"}
+          </p>
 
           <form onSubmit={(e) => submit(e)} className="mt-6 space-y-4">
+            {mode === "signup" && (
+              <>
+                <div>
+                  <label className="text-xs font-medium text-ink-muted">Full name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-ink-muted">Department</label>
+                  <input
+                    type="text"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10"
+                  />
+                </div>
+              </>
+            )}
             <div>
               <label className="text-xs font-medium text-ink-muted">Email</label>
               <input
@@ -81,30 +151,41 @@ export function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                minLength={mode === "signup" ? 8 : 4}
                 className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10"
                 required
               />
             </div>
-            {error && <p className="text-sm text-ink">{error}</p>}
+            {error && <p className="text-sm text-rose-600">{error}</p>}
             <button type="submit" disabled={loading} className="btn-primary w-full py-3">
-              {loading ? "Signing in…" : "Begin your journey"}
+              {loading
+                ? mode === "signup"
+                  ? "Creating account…"
+                  : "Signing in…"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Begin your journey"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-ink-muted">Demo accounts</p>
-          <div className="mt-2 space-y-2">
-            {DEMO_ACCOUNTS.map((d) => (
-              <button
-                key={d.email}
-                type="button"
-                onClick={(e) => submit(e, { email: d.email, password: d.password })}
-                className="w-full rounded-2xl border border-white/60 bg-white/50 px-4 py-3 text-left text-sm transition hover:bg-teal-light/50"
-              >
-                <span className="font-medium text-ink">{d.label}</span>
-                <span className="mt-0.5 block text-xs text-ink-muted">{d.email}</span>
-              </button>
-            ))}
-          </div>
+          {mode === "login" && (
+            <>
+              <p className="mt-6 text-center text-xs text-ink-muted">Demo accounts</p>
+              <div className="mt-2 space-y-2">
+                {DEMO_ACCOUNTS.map((d) => (
+                  <button
+                    key={d.email}
+                    type="button"
+                    onClick={(e) => submit(e, { email: d.email, password: d.password })}
+                    className="w-full rounded-2xl border border-white/60 bg-white/50 px-4 py-3 text-left text-sm transition hover:bg-teal-light/50"
+                  >
+                    <span className="font-medium text-ink">{d.label}</span>
+                    <span className="mt-0.5 block text-xs text-ink-muted">{d.email}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

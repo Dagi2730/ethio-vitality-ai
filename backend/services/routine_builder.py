@@ -3,17 +3,24 @@ Auto-Routine Builder: personalized daily schedule from vitals, mood, habits.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from services import data_store
-from services.insights_engine import DEFAULT_HABITS
+
+DEFAULT_HABITS = {
+    "sleep_hours_avg": 6.2,
+    "steps_avg": 5200,
+    "screen_time_hours": 7.5,
+    "caffeine_cups": 3,
+    "outdoor_minutes": 25,
+}
 
 
-def build_daily_routine(lang: str = "en") -> dict[str, Any]:
-    latest = data_store.get_latest()
-    mood = data_store.get_latest_mood()
-    habits = data_store.get_habits() or DEFAULT_HABITS
+def build_daily_routine(user_id: int, lang: str = "en") -> dict[str, Any]:
+    latest = data_store.get_latest(user_id)
+    mood = data_store.get_latest_mood(user_id)
+    habits = data_store.get_habits(user_id) or DEFAULT_HABITS
     stress = int(latest.get("stress_level", 35))
 
     blocks_en = [
@@ -35,7 +42,7 @@ def build_daily_routine(lang: str = "en") -> dict[str, Any]:
         {"time": "11:00", "activity": "ጤን አዳም ሻይ", "category": "wellness"},
         {"time": "13:00", "activity": "ከዴስክ ርቆ ምሳ", "category": "nutrition"},
         {"time": "15:30", "activity": "10 ደቂቃ ጉዞ", "category": "movement"},
-        {"time": "18:00", "activity": "መተንፈሻ ወይም ሙዚቃ", "category": "recovery"},
+        {"time": "18:00", "activity": "መተንፈሻ ወይም ሙዚታ", "category": "recovery"},
         {"time": "21:00", "activity": "ማያ መዝጋት", "category": "sleep"},
         {"time": "22:00", "activity": "7+ ሰዓት እንቅልፍ", "category": "sleep"},
     ]
@@ -43,19 +50,25 @@ def build_daily_routine(lang: str = "en") -> dict[str, Any]:
     blocks = blocks_am if lang == "am" else blocks_en
 
     if stress >= 70:
-        blocks.insert(4, {
-            "time": "12:00",
-            "activity": "4-7-8 breathing (4 cycles)" if lang == "en" else "4-7-8 መተንፈሻ (4 ዑደል)",
-            "category": "intervention",
-            "priority": True,
-        })
+        blocks.insert(
+            4,
+            {
+                "time": "12:00",
+                "activity": "4-7-8 breathing (4 cycles)" if lang == "en" else "4-7-8 መተንፈሻ (4 ዑደል)",
+                "category": "intervention",
+                "priority": True,
+            },
+        )
     if mood and mood.get("sentiment") in ("sad", "anxious", "overwhelmed"):
-        blocks.insert(5, {
-            "time": "16:00",
-            "activity": "5-min reflection journal" if lang == "en" else "5 ደቂቃ መጽሐፍ",
-            "category": "mindfulness",
-            "priority": True,
-        })
+        blocks.insert(
+            5,
+            {
+                "time": "16:00",
+                "activity": "5-min reflection journal" if lang == "en" else "5 ደቂቃ መጽሐፍ",
+                "category": "mindfulness",
+                "priority": True,
+            },
+        )
 
     if float(habits.get("sleep_hours_avg", 7)) < 6.5:
         for b in blocks:
@@ -63,7 +76,7 @@ def build_daily_routine(lang: str = "en") -> dict[str, Any]:
                 b["priority"] = True
 
     return {
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "stress_level": stress,
         "blocks": blocks,
         "focus_theme_en": "Recovery & balance" if stress >= 60 else "Sustainable energy",

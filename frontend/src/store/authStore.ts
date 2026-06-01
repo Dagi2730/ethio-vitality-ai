@@ -7,6 +7,8 @@ export type AuthUser = {
   email: string;
   role: AppRole;
   name: string;
+  user_id?: number;
+  department?: string;
 };
 
 type AuthState = {

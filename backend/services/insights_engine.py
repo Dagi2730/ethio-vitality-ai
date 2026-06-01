@@ -1,5 +1,5 @@
 """
-Predictive insight engine: correlate habits, sleep, mood, and vitals.
+Predictive insight engine: mood patterns, wellness score, daily suggestions.
 """
 from __future__ import annotations
 
@@ -8,15 +8,11 @@ from typing import Any
 
 from services import data_store
 from services.analytics import classify_stress
-
-# Simulated habit profile (Digital Twin lifestyle model)
-DEFAULT_HABITS = {
-    "sleep_hours_avg": 6.2,
-    "steps_avg": 5200,
-    "screen_time_hours": 7.5,
-    "caffeine_cups": 3,
-    "outdoor_minutes": 25,
-}
+from services.wellness_score import (
+    compute_wellness_score,
+    daily_suggestions,
+    predict_next_mood,
+)
 
 
 def _correlation_label(r: float) -> str:
@@ -31,11 +27,70 @@ def _correlation_label(r: float) -> str:
     return "weak"
 
 
-def generate_personal_insights() -> dict[str, Any]:
-    history = data_store.get_history(limit=120)
-    moods = data_store.get_mood_history(limit=30)
-    journals = data_store.get_journal_entries(limit=10)
-    habits = data_store.get_habits() or DEFAULT_HABITS
+def _mood_pattern_insights(moods: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """AI-style pattern analysis over mood history."""
+    insights = []
+    if len(moods) < 3:
+        return insights
+
+    sentiments = [m.get("sentiment") for m in moods]
+    negative = ("sad", "anxious", "overwhelmed", "low")
+    neg_count = sum(1 for s in sentiments if s in negative)
+    neg_ratio = neg_count / len(sentiments)
+
+    # Day-of-week pattern (simplified: bucket by order)
+    weekend_heavy = sum(1 for s in sentiments[-3:] if s in negative) >= 2
+    if weekend_heavy:
+        insights.append(
+            {
+                "factor": "weekly_pattern",
+                "correlation": _correlation_label(0.4),
+                "insight_en": "Recent moods dip toward weekends — plan lighter commitments on Fri–Sat.",
+                "insight_am": "ቅርብ ስሜቶች በሳምንት መጨረሻ ይከሰታሉ።",
+                "confidence": 0.7,
+            }
+        )
+
+    if neg_ratio > 0.5:
+        insights.append(
+            {
+                "factor": "mood_trend",
+                "correlation": _correlation_label(0.55),
+                "insight_en": (
+                    f"Over {int(neg_ratio * 100)}% of recent check-ins are heavy — "
+                    "consider journaling triggers and speaking with Coach."
+                ),
+                "insight_am": f"የቅርብ ስሜቶች {int(neg_ratio * 100)}% ከባድ ናቸው።",
+                "confidence": 0.82,
+            }
+        )
+
+    # Streak detection
+    streak = 0
+    for s in reversed(sentiments):
+        if s in negative:
+            streak += 1
+        else:
+            break
+    if streak >= 3:
+        insights.append(
+            {
+                "factor": "negative_streak",
+                "correlation": _correlation_label(0.6),
+                "insight_en": f"You've logged {streak} consecutive heavy moods — small wins matter today.",
+                "insight_am": f"{streak} ተከታታይ ከባድ ስሜቶች ተመዝግበዋል።",
+                "confidence": 0.85,
+            }
+        )
+
+    return insights
+
+
+def generate_personal_insights(user_id: int) -> dict[str, Any]:
+    history = data_store.get_history(user_id, limit=120)
+    moods = data_store.get_mood_history(user_id, limit=30)
+    journals = data_store.get_journal_entries(user_id, limit=10)
+    habits = data_store.get_habits(user_id)
 
     stress_vals = [int(h.get("stress_level", 0)) for h in history]
     hr_vals = [int(h.get("heart_rate", 0)) for h in history]
@@ -51,9 +106,8 @@ def generate_personal_insights() -> dict[str, Any]:
     )
 
     sleep = float(habits.get("sleep_hours_avg", 6))
-    sleep_impact = "high" if sleep < 6 and avg_stress > 55 else "moderate" if sleep < 7 else "low"
+    predictions = _mood_pattern_insights(moods)
 
-    predictions = []
     if sleep < 6.5 and avg_stress > 50:
         predictions.append(
             {
@@ -61,12 +115,9 @@ def generate_personal_insights() -> dict[str, Any]:
                 "correlation": _correlation_label(-0.45),
                 "insight_en": (
                     f"Sleep averaging {sleep}h correlates with {avg_stress}% stress. "
-                    "Earlier wind-down (herbal tea, no screens 30m before bed) may help."
+                    "Earlier wind-down may help."
                 ),
-                "insight_am": (
-                    f"እንቅልፍ {sleep} ሰዓት ከ {avg_stress}% ጭንቀት ጋር ይዛመዳል። "
-                    "ቀደም ብሎ መኝታ እና ማያ መቆም ሊረዱ ይችላሉ።"
-                ),
+                "insight_am": f"እንቅልፍ {sleep} ሰዓት ከ {avg_stress}% ጭንቀት ጋር ይዛመዳል።",
                 "confidence": 0.78,
             }
         )
@@ -76,29 +127,18 @@ def generate_personal_insights() -> dict[str, Any]:
             {
                 "factor": "movement",
                 "correlation": _correlation_label(-0.35),
-                "insight_en": "Low outdoor time detected. A 15-min Entoto/Bole walk may reduce afternoon stress.",
+                "insight_en": "Low outdoor time detected. A 15-min walk may reduce afternoon stress.",
                 "insight_am": "ዝቅተኛ ውጭ እንቅስቃሴ። 15 ደቂቃ የእግር ጉዞ ጭንቀትን ሊቀንስ ይችላል።",
                 "confidence": 0.72,
             }
         )
 
-    if negative_ratio > 0.4 and avg_stress > 55:
-        predictions.append(
-            {
-                "factor": "mood_stress",
-                "correlation": _correlation_label(0.55),
-                "insight_en": (
-                    f"{int(negative_ratio * 100)}% of recent moods are heavy while stress averages {avg_stress}%."
-                ),
-                "insight_am": (
-                    f"የቅርብ ስሜቶች {int(negative_ratio * 100)}% ከባድ ናቸው፣ ጭንቀት {avg_stress}% ነው።"
-                ),
-                "confidence": 0.81,
-            }
-        )
-
     journal_emotions = [j.get("extracted_emotion") for j in journals if j.get("extracted_emotion")]
     top_emotion = max(set(journal_emotions), key=journal_emotions.count) if journal_emotions else None
+
+    wellness = compute_wellness_score(avg_stress=avg_stress, moods=moods, habits=habits)
+    mood_prediction = predict_next_mood(moods, stress_vals)
+    suggestions = daily_suggestions(wellness, habits, mood_prediction)
 
     return {
         "summary": {
@@ -111,6 +151,9 @@ def generate_personal_insights() -> dict[str, Any]:
         "habits": habits,
         "predictions": predictions,
         "top_journal_emotion": top_emotion,
+        "wellness_score": wellness,
+        "mood_prediction": mood_prediction,
+        "daily_suggestions": suggestions,
         "risk_forecast": {
             "burnout_7d_probability": min(0.95, round(avg_stress / 100 + negative_ratio * 0.3, 2)),
             "trend": "rising" if len(stress_vals) >= 2 and stress_vals[-1] > stress_vals[0] else "stable",

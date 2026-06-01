@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { useWellnessStore } from "../../store/wellnessStore";
 import { LanguageToggle } from "../layout/LanguageToggle";
+import { NotificationBell } from "../notifications/NotificationBell";
 
 const links = [
   { to: "/personal", end: true, label: "Your Space", am: "የእርስዎ ቦታ", icon: "🏠" },
@@ -9,6 +10,7 @@ const links = [
   { to: "/personal/reflect", label: "Reflect", am: "መጽሐፍ", icon: "📔" },
   { to: "/personal/actions", label: "Actions", am: "ተግባር", icon: "✨" },
   { to: "/personal/insights", label: "Insights", am: "ትንተና", icon: "📊" },
+  { to: "/personal/privacy", label: "Privacy", am: "ግላዊነት", icon: "🔒" },
 ];
 
 export function PersonalNavRail() {
@@ -44,7 +46,10 @@ export function PersonalNavRail() {
         ))}
       </nav>
       <div className="space-y-2 border-t border-white/50 p-3">
-        <LanguageToggle />
+        <div className="flex items-center justify-between px-1">
+          <LanguageToggle />
+          <NotificationBell />
+        </div>
         <button
           type="button"
           onClick={logout}

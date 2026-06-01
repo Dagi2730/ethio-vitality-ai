@@ -1,4 +1,4 @@
-import type { WardPatient } from "../../data/mockWardPatients";
+import type { WardPatient } from "../../types/ward";
 
 const riskStyles = {
   low: "border-emerald-200 bg-emerald-50/50",
@@ -71,6 +71,9 @@ export function PatientTwinCard({ patient, selected, onSelect }: Props) {
         </div>
         <p className="mt-2 text-xs text-calm-500">
           Digital Twin · {patient.simulatedMood} · {patient.lastUpdated}
+        </p>
+        <p className="mt-2 text-xs uppercase tracking-wide text-calm-400">
+          Tap to open full patient details.
         </p>
       </div>
     </button>

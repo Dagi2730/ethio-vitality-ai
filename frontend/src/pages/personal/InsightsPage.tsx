@@ -30,6 +30,9 @@ export function InsightsPage() {
     confidence: Math.round(p.confidence * 100),
   }));
 
+  const ws = data.wellness_score;
+  const mp = data.mood_prediction;
+
   return (
     <div className="space-y-6">
       <header>
@@ -38,10 +41,23 @@ export function InsightsPage() {
         </h1>
         <p className="text-sm text-calm-500">
           {lang === "am"
-            ? "እንቅልፍ · ልማድ · ስሜት ትንበያ"
-            : "Sleep · habits · mood predictions"}
+            ? "የእንክብካቤ ነጥብ · ስሜት ትንበያ · ዕለታዊ ምክሮች"
+            : "Wellness score · mood forecast · daily suggestions"}
         </p>
       </header>
+
+      {ws && (
+        <div className="card-data text-center">
+          <p className="text-xs text-calm-500">Wellness score</p>
+          <p className="text-4xl font-semibold text-vitality-800">{ws.score}</p>
+          <p className="mt-1 capitalize text-sm text-calm-600">{ws.band.replace("_", " ")}</p>
+          <div className="mt-4 flex justify-center gap-4 text-xs text-calm-500">
+            <span>Stress {ws.components.stress}</span>
+            <span>Mood {ws.components.mood}</span>
+            <span>Activity {ws.components.activity}</span>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="card-data text-center">
@@ -57,17 +73,45 @@ export function InsightsPage() {
           </p>
         </div>
         <div className="card-data text-center">
-          <p className="text-xs text-calm-500">Trend</p>
-          <p className="text-2xl font-semibold capitalize text-calm-700">
-            {data.risk_forecast.trend}
+          <p className="text-xs text-calm-500">24h mood forecast</p>
+          <p className="text-lg font-semibold capitalize text-calm-700">
+            {mp?.predicted_sentiment ?? "—"}
           </p>
+          {mp && (
+            <p className="text-[10px] text-calm-400">
+              {Math.round(mp.confidence * 100)}% confidence
+            </p>
+          )}
         </div>
       </div>
+
+      {data.daily_suggestions && data.daily_suggestions.length > 0 && (
+        <div className="card-data">
+          <h3 className="mb-3 text-sm font-semibold text-vitality-800">
+            {lang === "am" ? "የዛሬ ምክሮች" : "Today's suggestions"}
+          </h3>
+          <ul className="space-y-3">
+            {data.daily_suggestions.map((s) => (
+              <li
+                key={s.id}
+                className="rounded-lg border border-vitality-100 bg-vitality-50/40 px-3 py-2"
+              >
+                <p className="text-sm font-medium text-calm-900">
+                  {lang === "am" ? s.title_am : s.title_en}
+                </p>
+                <p className="text-xs text-calm-600">
+                  {lang === "am" ? s.body_am : s.body_en}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {data.predictions.length > 0 && (
         <div className="card-data">
           <h3 className="mb-3 text-sm font-semibold text-vitality-800">
-            {lang === "am" ? "ትንበያዎች" : "Predictions"}
+            {lang === "am" ? "የስሜት ቅንጅቶች" : "Mood patterns"}
           </h3>
           <ul className="space-y-3">
             {data.predictions.map((p) => (

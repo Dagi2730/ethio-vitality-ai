@@ -7,12 +7,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from db.database import SessionLocal
+from db import repository
 from services.auth import PUBLIC_PATHS, decode_token
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Let CORS middleware handle preflight (when CORS wraps this layer).
         if request.method == "OPTIONS":
             return await call_next(request)
 
@@ -34,8 +35,18 @@ class AuthMiddleware(BaseHTTPMiddleware):
         token = auth[7:].strip()
         try:
             payload = decode_token(token)
+            email = payload.get("sub")
+            user_id = payload.get("user_id")
+            if not user_id and email:
+                db = SessionLocal()
+                try:
+                    db_user = repository.get_user_by_email(db, email)
+                    user_id = db_user.id if db_user else None
+                finally:
+                    db.close()
             request.state.user = {
-                "email": payload.get("sub"),
+                "email": email,
+                "user_id": user_id,
                 "role": payload.get("role", "user"),
                 "name": payload.get("name", ""),
             }

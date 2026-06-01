@@ -1,46 +1,33 @@
 """
-In-memory sensor, mood, journal & habit store.
-MQTT-ready: call ingest_reading() from subscriber — business logic unchanged.
+Per-user wellness data facade — backed by SQLite via repository.
 """
 from __future__ import annotations
 
-import threading
-from collections import deque
-from datetime import datetime, timezone
 from typing import Any, Optional
 
-_lock = threading.Lock()
-_latest: dict[str, Any] = {
-    "heart_rate": 72,
-    "stress_level": 35,
-    "simulated_mood": "calm",
-    "sleep_hours": 6.5,
-    "timestamp": datetime.now(timezone.utc).isoformat(),
-    "source": "simulation",
-}
-_history: deque = deque(maxlen=288)
-_events: deque = deque(maxlen=50)
-_latest_mood: Optional[dict[str, Any]] = None
-_mood_history: deque = deque(maxlen=100)
-_journal_entries: deque = deque(maxlen=200)
-_habits: dict[str, Any] = {
-    "sleep_hours_avg": 6.2,
-    "steps_avg": 5200,
-    "screen_time_hours": 7.5,
-    "caffeine_cups": 3,
-    "outdoor_minutes": 25,
-}
-_routine_cache: Optional[dict[str, Any]] = None
+from db.database import SessionLocal
+from db import repository
 
-MOOD_STATES = ("calm", "focused", "tired", "anxious", "energized")
+# In-memory stress events (org-level spikes from simulator)
+_stress_events: list[dict[str, Any]] = []
+_MAX_EVENTS = 50
+_routine_cache: dict[int, dict[str, Any]] = {}
 
 
-def get_latest() -> dict[str, Any]:
-    with _lock:
-        return dict(_latest)
+def _db():
+    return SessionLocal()
+
+
+def get_latest(user_id: int) -> dict[str, Any]:
+    db = _db()
+    try:
+        return repository.get_latest_vital(db, user_id)
+    finally:
+        db.close()
 
 
 def ingest_reading(
+    user_id: int,
     heart_rate: int,
     stress_level: int,
     *,
@@ -48,67 +35,65 @@ def ingest_reading(
     simulated_mood: Optional[str] = None,
     sleep_hours: Optional[float] = None,
 ) -> dict[str, Any]:
-    """Single entry point for simulation or MQTT wearable payloads."""
-    ts = datetime.now(timezone.utc).isoformat()
-    record = {
-        "heart_rate": heart_rate,
-        "stress_level": stress_level,
-        "timestamp": ts,
-        "source": source,
-    }
-    with _lock:
-        if simulated_mood:
-            record["simulated_mood"] = simulated_mood
-            _latest["simulated_mood"] = simulated_mood
-        if sleep_hours is not None:
-            record["sleep_hours"] = sleep_hours
-            _latest["sleep_hours"] = sleep_hours
-        _latest.update(record)
-        _history.append(dict(_latest))
-    return record
+    db = _db()
+    try:
+        return repository.ingest_vital(
+            db,
+            user_id,
+            heart_rate,
+            stress_level,
+            source=source,
+            simulated_mood=simulated_mood,
+            sleep_hours=sleep_hours,
+        )
+    finally:
+        db.close()
 
 
 def append_stress_event(event: dict[str, Any]) -> None:
-    with _lock:
-        _events.append(event)
-
-
-def get_history(limit: Optional[int] = 60) -> list[dict[str, Any]]:
-    with _lock:
-        items = list(_history)
-    return items[-limit:] if limit else items
+    _stress_events.append(event)
+    if len(_stress_events) > _MAX_EVENTS:
+        del _stress_events[0]
 
 
 def get_stress_events() -> list[dict[str, Any]]:
-    with _lock:
-        return list(_events)
+    return list(_stress_events)
 
 
-def record_mood(sentiment: str, emoji: str) -> dict[str, Any]:
-    entry = {
-        "sentiment": sentiment,
-        "emoji": emoji,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
-    global _latest_mood
-    with _lock:
-        _latest_mood = entry
-        _mood_history.append(entry)
-    return entry
+def get_history(user_id: int, limit: Optional[int] = 60) -> list[dict[str, Any]]:
+    db = _db()
+    try:
+        return repository.get_vital_history(db, user_id, limit=limit or 120)
+    finally:
+        db.close()
 
 
-def get_latest_mood() -> Optional[dict[str, Any]]:
-    with _lock:
-        return dict(_latest_mood) if _latest_mood else None
+def record_mood(user_id: int, sentiment: str, emoji: str) -> dict[str, Any]:
+    db = _db()
+    try:
+        return repository.record_mood(db, user_id, sentiment, emoji)
+    finally:
+        db.close()
 
 
-def get_mood_history(limit: int = 20) -> list[dict[str, Any]]:
-    with _lock:
-        items = list(_mood_history)
-    return items[-limit:]
+def get_latest_mood(user_id: int) -> Optional[dict[str, Any]]:
+    db = _db()
+    try:
+        return repository.get_latest_mood(db, user_id)
+    finally:
+        db.close()
+
+
+def get_mood_history(user_id: int, limit: int = 20) -> list[dict[str, Any]]:
+    db = _db()
+    try:
+        return repository.get_mood_history(db, user_id, limit=limit)
+    finally:
+        db.close()
 
 
 def add_journal_entry(
+    user_id: int,
     text: str,
     source: str,
     extracted_emotion: str,
@@ -116,44 +101,57 @@ def add_journal_entry(
     themes: list,
     summary: str,
 ) -> dict[str, Any]:
-    entry = {
-        "id": len(_journal_entries) + 1,
-        "text_preview": text[:120] + ("…" if len(text) > 120 else ""),
-        "source": source,
-        "extracted_emotion": extracted_emotion,
-        "intensity": intensity,
-        "themes": themes,
-        "summary_one_line": summary,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
-    with _lock:
-        _journal_entries.append(entry)
-    return entry
+    db = _db()
+    try:
+        return repository.add_journal(
+            db,
+            user_id,
+            text,
+            source,
+            extracted_emotion,
+            intensity,
+            themes,
+            summary,
+        )
+    finally:
+        db.close()
 
 
-def get_journal_entries(limit: int = 20) -> list[dict[str, Any]]:
-    with _lock:
-        items = list(_journal_entries)
-    return items[-limit:]
+def update_journal_entry(user_id: int, entry_id: int, text: str) -> Optional[dict[str, Any]]:
+    db = _db()
+    try:
+        return repository.update_journal(db, user_id, entry_id, text)
+    finally:
+        db.close()
 
 
-def get_habits() -> dict[str, Any]:
-    with _lock:
-        return dict(_habits)
+def get_journal_entries(user_id: int, limit: int = 20) -> list[dict[str, Any]]:
+    db = _db()
+    try:
+        return repository.get_journal_entries(db, user_id, limit=limit)
+    finally:
+        db.close()
 
 
-def update_habits(updates: dict[str, Any]) -> dict[str, Any]:
-    with _lock:
-        _habits.update(updates)
-        return dict(_habits)
+def get_habits(user_id: int) -> dict[str, Any]:
+    db = _db()
+    try:
+        return repository.get_habits(db, user_id)
+    finally:
+        db.close()
 
 
-def cache_routine(routine: dict[str, Any]) -> None:
-    global _routine_cache
-    with _lock:
-        _routine_cache = routine
+def update_habits(user_id: int, updates: dict[str, Any]) -> dict[str, Any]:
+    db = _db()
+    try:
+        return repository.update_habits(db, user_id, updates)
+    finally:
+        db.close()
 
 
-def get_cached_routine() -> Optional[dict[str, Any]]:
-    with _lock:
-        return dict(_routine_cache) if _routine_cache else None
+def cache_routine(user_id: int, routine: dict[str, Any]) -> None:
+    _routine_cache[user_id] = routine
+
+
+def get_cached_routine(user_id: int) -> Optional[dict[str, Any]]:
+    return _routine_cache.get(user_id)

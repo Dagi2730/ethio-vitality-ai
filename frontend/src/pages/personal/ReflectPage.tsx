@@ -85,6 +85,7 @@ export function ReflectPage() {
       </div>
 
       <JournalEditor
+        key={editorOpen ? "open" : "closed"}
         isOpen={editorOpen}
         isEditing={isEditing}
         editingEntry={editingEntry}

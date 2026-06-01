@@ -1,21 +1,15 @@
 """
-Analytics & B2B aggregation — decoupled from HTTP layer.
+Analytics & B2B aggregation from real database user data (privacy-aware).
 """
 from __future__ import annotations
 
 from statistics import mean
 from typing import Any
 
+from db.database import SessionLocal
+from db import repository
 from services import data_store
-
-# Synthetic corporate roster for demo B2B portal (replace with DB later)
-DEPARTMENTS = {
-    "Engineering": [42, 55, 68, 72, 48, 61, 75, 58],
-    "Operations": [38, 45, 52, 60, 44, 50, 55, 48],
-    "Guest Services": [55, 62, 70, 78, 65, 58, 72, 68],
-    "Finance": [48, 52, 58, 65, 50, 54, 60, 52],
-    "HR & Wellness": [30, 35, 40, 38, 32, 36, 42, 35],
-}
+from services.rbac import Role
 
 
 def classify_stress(stress_level: int | float) -> str:
@@ -36,35 +30,37 @@ def _burnout_risk(avg_stress: float) -> str:
     return "healthy"
 
 
-def aggregate_business_insights() -> dict[str, Any]:
-    latest = data_store.get_latest()
-    live_stress = latest.get("stress_level", 0)
-    history = data_store.get_history(limit=120)
-    events = data_store.get_stress_events()
+def aggregate_business_insights(viewer_role: Role = Role.HR) -> dict[str, Any]:
+    db = SessionLocal()
+    try:
+        role_key = viewer_role.value if isinstance(viewer_role, Role) else str(viewer_role)
+        dept_rows = repository.get_department_aggregates(db, role_key)
+    finally:
+        db.close()
 
     dept_stats = []
     alerts: list[dict[str, Any]] = []
     all_avgs: list[float] = []
 
-    for dept, samples in DEPARTMENTS.items():
-        avg = round(mean(samples), 1)
+    for row in dept_rows:
+        avg = row["average_stress"]
         all_avgs.append(avg)
         risk = _burnout_risk(avg)
         classification = classify_stress(avg)
         entry = {
-            "department": dept,
+            "department": row["department"],
             "average_stress": avg,
             "classification": classification,
             "burnout_risk": risk,
-            "headcount": len(samples),
+            "headcount": row["headcount"],
         }
         dept_stats.append(entry)
         if risk in ("elevated", "critical"):
             alerts.append(
                 {
-                    "department": dept,
+                    "department": row["department"],
                     "severity": risk,
-                    "message": f"{dept} average stress {avg}% — {classification} band",
+                    "message": f"{row['department']} average stress {avg}% — {classification} band",
                 }
             )
 
@@ -73,40 +69,33 @@ def aggregate_business_insights() -> dict[str, Any]:
     for d in dept_stats:
         distribution[d["classification"]] += 1
 
+    events = data_store.get_stress_events()
     heatmap = _build_burnout_heatmap(dept_stats)
 
     return {
-        "privacy_notice": "All data anonymized and aggregated. No PII exposed.",
+        "privacy_notice": "Aggregated from users who opted in. No raw journal text exposed.",
         "organization": {
             "average_stress": org_avg,
             "classification": classify_stress(org_avg),
-            "departments_monitored": len(DEPARTMENTS),
+            "departments_monitored": len(dept_stats),
             "active_alerts": len(alerts),
         },
         "live_digital_twin": {
-            "heart_rate": latest.get("heart_rate"),
-            "stress_level": live_stress,
-            "classification": classify_stress(live_stress),
-            "timestamp": latest.get("timestamp"),
+            "heart_rate": None,
+            "stress_level": org_avg,
+            "classification": classify_stress(org_avg),
+            "timestamp": None,
         },
         "departments": dept_stats,
         "stress_distribution": distribution,
         "recent_stress_events": events[-10:],
-        "trend_sample": [
-            {
-                "timestamp": h.get("timestamp"),
-                "stress_level": h.get("stress_level"),
-                "heart_rate": h.get("heart_rate"),
-            }
-            for h in history[-30:]
-        ],
+        "trend_sample": [],
         "alerts": alerts,
         "burnout_heatmap": heatmap,
     }
 
 
 def _build_burnout_heatmap(dept_stats: list) -> dict[str, Any]:
-    """Anonymized department × risk grid for HR/Doctor portal."""
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     cells = []
     for dept_row in dept_stats:

@@ -68,16 +68,16 @@ export function JournalEditor({
       editor.commands.setContent(initialContent);
       editor.commands.focus("end");
     }
-  }, [isOpen, editor]);
+  }, [isOpen, editor, initialContent]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!editor) return;
+    if (!editor || loading) return;
     
     const html = editor.getHTML();
     const text = editor.getText();
     
-    if (!text.trim() || loading) return;
+    if (!text.trim()) return;
     
     await onSubmit(html, isEditing);
     setSavedFlash(true);
@@ -131,9 +131,9 @@ export function JournalEditor({
       {/* Formatting Toolbar */}
       {editor && (
         <div className="border-b border-warm-border bg-warm-bg/50 px-4 py-3 md:px-6">
-          <div className="mx-auto max-w-4xl flex flex-wrap items-center gap-1">
+          <div className="mx-auto max-w-4xl flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
             {/* Text Style */}
-            <div className="flex items-center gap-0.5 rounded-lg border border-warm-border bg-white p-1">
+            <div className="flex flex-none items-center gap-0.5 rounded-lg border border-warm-border bg-white p-1">
               <button
                 type="button"
                 onClick={() => editor.chain().focus().toggleBold().run()}
@@ -229,42 +229,42 @@ export function JournalEditor({
             </div>
 
             {/* Alignment */}
-            <div className="flex items-center gap-0.5 rounded-lg border border-warm-border bg-white p-1">
+            <div className="flex flex-none items-center gap-0.5 min-w-[9rem] rounded-lg border border-warm-border bg-white p-1">
               <button
                 type="button"
                 onClick={() => editor.chain().focus().setTextAlign("left").run()}
-                className={`px-3 py-1.5 rounded text-sm transition ${
+                className={`min-w-[42px] px-3 py-1.5 rounded text-sm transition ${
                   editor.isActive({ textAlign: "left" })
                     ? "bg-teal text-white"
                     : "hover:bg-warm-bg"
                 }`}
                 title="Align left"
               >
-                ⬅
+                L
               </button>
               <button
                 type="button"
                 onClick={() => editor.chain().focus().setTextAlign("center").run()}
-                className={`px-3 py-1.5 rounded text-sm transition ${
+                className={`min-w-[42px] px-3 py-1.5 rounded text-sm transition ${
                   editor.isActive({ textAlign: "center" })
                     ? "bg-teal text-white"
                     : "hover:bg-warm-bg"
                 }`}
                 title="Align center"
               >
-                ⬈
+                C
               </button>
               <button
                 type="button"
                 onClick={() => editor.chain().focus().setTextAlign("right").run()}
-                className={`px-3 py-1.5 rounded text-sm transition ${
+                className={`min-w-[42px] px-3 py-1.5 rounded text-sm transition ${
                   editor.isActive({ textAlign: "right" })
                     ? "bg-teal text-white"
                     : "hover:bg-warm-bg"
                 }`}
                 title="Align right"
               >
-                ➡
+                R
               </button>
             </div>
 

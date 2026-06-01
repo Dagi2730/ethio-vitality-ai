@@ -4,28 +4,74 @@ import { authHeaders, useAuthStore } from "../store/authStore";
  * Backend (FastAPI) base URL — NOT the Vite dev server (5173).
  * Override with VITE_API_URL in frontend/.env
  */
-const API_BASE =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+/** In dev, default "" uses Vite proxy (/api → :8000). Set VITE_API_URL to override. */
+const API_BASE = (() => {
+  const env = import.meta.env.VITE_API_URL;
+  if (env !== undefined && env !== "") {
+    return String(env).replace(/\/$/, "");
+  }
+  return import.meta.env.DEV ? "" : "";
+})();
+
+async function authFetch(path: string, init?: RequestInit) {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, init);
+  } catch {
+    throw new Error(
+      "Cannot reach the API server. Start the backend: cd backend && python -m uvicorn main:app --reload --port 8000"
+    );
+  }
+  return res;
+}
+
+export type AuthUser = {
+  email: string;
+  role: string;
+  name: string;
+  department?: string;
+  user_id?: number;
+};
 
 export type LoginResult = {
   access_token: string;
   token_type: string;
-  user: { email: string; role: string; name: string };
+  user: AuthUser;
 };
 
 export async function login(email: string, password: string): Promise<LoginResult> {
-  const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+  const res = await authFetch("/api/v1/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  if (!res.ok) throw new Error("Login failed");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || "Login failed");
+  }
+  return res.json();
+}
+
+export async function signup(
+  email: string,
+  password: string,
+  name: string,
+  department = "General"
+): Promise<LoginResult> {
+  const res = await authFetch("/api/v1/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, name, department }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || "Sign up failed");
+  }
   return res.json();
 }
 
 async function apiFetch(path: string, init?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await authFetch(path, {
     ...init,
     headers: {
       ...authHeaders(),
@@ -103,6 +149,12 @@ export type ChatResponsePayload = {
   anomaly_prompt?: string | null;
 };
 
+export type WellnessScore = {
+  score: number;
+  band: string;
+  components: { stress: number; mood: number; activity: number };
+};
+
 export type PersonalInsights = {
   summary: Record<string, unknown>;
   habits: Record<string, number>;
@@ -112,8 +164,41 @@ export type PersonalInsights = {
     insight_am: string;
     confidence: number;
   }>;
+  wellness_score?: WellnessScore;
+  mood_prediction?: {
+    predicted_sentiment: string;
+    confidence: number;
+    horizon_hours: number;
+    drivers: string[];
+  };
+  daily_suggestions?: Array<{
+    id: string;
+    title_en: string;
+    title_am: string;
+    body_en: string;
+    body_am: string;
+  }>;
   risk_forecast: { burnout_7d_probability: number; trend: string };
 };
+
+export type PrivacySettings = {
+  share_with_hr: boolean;
+  share_with_doctor: boolean;
+  share_vitals: boolean;
+  share_mood: boolean;
+  share_journal_summary: boolean;
+};
+
+export type AppNotification = {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  created_at: string;
+};
+
+export type WardPatient = import("../types/ward").WardPatient;
 
 export type JournalEntry = {
   id: number;
@@ -237,4 +322,31 @@ export async function fetchBusinessInsights(): Promise<BusinessInsights> {
 
 export async function fetchHeatmap() {
   return apiFetch("/api/v1/business/heatmap");
+}
+
+export async function fetchClinicalWard(): Promise<{ patients: WardPatient[] }> {
+  return apiFetch("/api/v1/clinical/ward");
+}
+
+export async function fetchPatientTrend(patientId: string) {
+  return apiFetch(`/api/v1/clinical/patients/${patientId}/trend`);
+}
+
+export async function fetchPrivacy(): Promise<PrivacySettings> {
+  return apiFetch("/api/v1/privacy");
+}
+
+export async function updatePrivacy(updates: Partial<PrivacySettings>) {
+  return apiFetch("/api/v1/privacy", {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+}
+
+export async function fetchNotifications(): Promise<{ notifications: AppNotification[] }> {
+  return apiFetch("/api/v1/notifications");
+}
+
+export async function markNotificationRead(id: number) {
+  return apiFetch(`/api/v1/notifications/${id}/read`, { method: "POST" });
 }

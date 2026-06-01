@@ -5,10 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.auth_routes import router as auth_router
 from api.routes import router
+from db.init_db import init_database
 from middleware.auth_middleware import AuthMiddleware
 from services.simulation import simulator
 
-# Frontend dev origins (Vite)
 CORS_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -19,6 +19,7 @@ CORS_ORIGINS = [
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_database()
     await simulator.start()
     yield
     await simulator.stop()
@@ -26,12 +27,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Ethio-Vitality AI",
-    description="B2B2C wellness API — JWT + RBAC + MQTT-ready Digital Twin",
-    version="2.0.0",
+    description="B2B2C wellness API — SQLite + JWT + RBAC",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
-# Auth runs first; CORS added last so it wraps ALL responses (including 401/403).
 app.add_middleware(AuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
