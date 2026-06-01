@@ -1,0 +1,211 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply min-h-screen font-sans text-ink antialiased;
+  }
+}
+
+@layer components {
+  .sanctuary-page {
+    @apply relative min-h-full overflow-hidden;
+  }
+
+  .glass-card {
+    @apply rounded-3xl border border-white/60 bg-white/75 p-5 shadow-sanctuary backdrop-blur-md;
+  }
+
+  .glass-card-soft {
+    @apply rounded-3xl border border-white/50 bg-white/60 p-4 shadow-sanctuary backdrop-blur-sm;
+  }
+
+  .card {
+    @apply glass-card;
+  }
+
+  .card-stress {
+    @apply rounded-3xl border border-amber-alert/15 bg-amber-wash/80 p-5 shadow-sanctuary backdrop-blur-sm;
+  }
+
+  .card-calm {
+    @apply rounded-3xl border border-teal/15 bg-teal-muted/70 p-5 shadow-sanctuary backdrop-blur-sm;
+  }
+
+  .btn-primary {
+    @apply rounded-2xl bg-gradient-to-r from-teal to-teal/90 px-6 py-3 font-medium text-white shadow-sanctuary transition hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-teal/30 disabled:opacity-50;
+  }
+
+  .zone-personal,
+  .zone-journal {
+    @apply sanctuary-page;
+  }
+
+  .mood-pill {
+    @apply flex h-14 w-14 flex-col items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-2xl shadow-sanctuary transition duration-300 hover:scale-105 hover:shadow-sanctuary-lg;
+  }
+
+  .mood-pill-active {
+    @apply scale-105 border-teal/40 bg-teal-light shadow-glow ring-2 ring-teal/20;
+  }
+
+  .feature-tile {
+    @apply flex flex-col items-center justify-center gap-2 rounded-3xl border border-white/60 bg-white/70 p-5 shadow-sanctuary backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:shadow-sanctuary-lg;
+  }
+
+  .vitality-chat-shell {
+    @apply sanctuary-page flex min-h-[100dvh] flex-col;
+  }
+
+  .vitality-msg-ai {
+    @apply max-w-[85%] animate-fade-in border-l-[3px] border-teal bg-white/80 py-4 pl-4 pr-5 text-base font-normal leading-[1.8] text-ink shadow-sanctuary backdrop-blur-md;
+    border-radius: 0 20px 20px 20px;
+  }
+
+  .vitality-msg-ai-am {
+    line-height: 2;
+  }
+
+  .vitality-msg-user {
+    @apply max-w-[70%] animate-fade-in bg-gradient-to-br from-teal-light to-sanctuary-mint/50 py-3 px-4 text-[15px] leading-relaxed text-ink shadow-sanctuary;
+    border-radius: 20px 0 20px 20px;
+  }
+
+  .vitality-input-bar {
+    @apply border-t border-white/40 bg-white/50 px-4 py-3 backdrop-blur-lg;
+  }
+
+  .vitality-typing-dot {
+    @apply h-2.5 w-2.5 rounded-full bg-teal/50;
+    animation: pulseSoft 1.8s ease-in-out infinite;
+  }
+
+  .vitality-typing-dot:nth-child(2) {
+    animation-delay: 0.25s;
+  }
+
+  .vitality-typing-dot:nth-child(3) {
+    animation-delay: 0.5s;
+  }
+
+  /* Immersive Vitality (Calmly-style) */
+  .vitality-immersive {
+    background: linear-gradient(
+      165deg,
+      #5a8faf 0%,
+      #7ec8e3 35%,
+      #9ecae1 60%,
+      #b8c9e8 100%
+    );
+  }
+
+  .vitality-immersive-bar {
+    @apply border-t border-white/15 bg-white/10 px-4 py-4 backdrop-blur-md;
+  }
+
+  .vitality-fab-mic {
+    @apply flex h-16 w-16 items-center justify-center rounded-full bg-white text-teal shadow-sanctuary-lg transition active:scale-95;
+  }
+
+  .vitality-fab-mic-active {
+    @apply ring-4 ring-white/40 scale-105;
+  }
+
+  .vitality-fab-send {
+    @apply flex h-11 w-11 items-center justify-center rounded-full bg-teal text-white shadow-sanctuary transition hover:opacity-90 disabled:opacity-30;
+  }
+
+  .vitality-fab-send-immersive {
+    @apply bg-white/25 text-white backdrop-blur-sm;
+  }
+
+  /* Journal */
+  .journal-entry-card {
+    @apply block rounded-3xl border border-white/60 bg-white/80 p-4 shadow-sanctuary backdrop-blur-md transition duration-200 hover:-translate-y-0.5 hover:shadow-sanctuary-lg;
+  }
+
+  .journal-composer-collapsed {
+    @apply flex w-full items-center gap-3 rounded-full border border-warm-border bg-white/90 px-5 py-4 shadow-sanctuary-lg backdrop-blur-xl transition hover:border-teal/30 hover:shadow-glow;
+  }
+
+  .journal-composer-expanded {
+    @apply rounded-4xl border border-white/60 bg-white/95 p-4 shadow-sanctuary-lg backdrop-blur-xl;
+  }
+
+  .hero-sanctuary {
+    @apply relative overflow-hidden rounded-4xl border border-white/50 bg-gradient-to-br from-sanctuary-gold/90 via-sanctuary-honey/80 to-teal/70 p-6 text-white shadow-sanctuary-lg;
+  }
+
+  /* TipTap Editor Styles */
+  .ProseMirror {
+    @apply min-h-96 w-full text-base leading-relaxed text-ink outline-none;
+  }
+
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none float-left h-0 text-ink-muted;
+  }
+
+  .ProseMirror h2 {
+    @apply text-2xl font-bold leading-relaxed mt-4 mb-2;
+  }
+
+  .ProseMirror h3 {
+    @apply text-xl font-semibold leading-relaxed mt-3 mb-1;
+  }
+
+  .ProseMirror ul {
+    @apply list-disc list-inside my-2;
+  }
+
+  .ProseMirror ol {
+    @apply list-decimal list-inside my-2;
+  }
+
+  .ProseMirror li {
+    @apply ml-2 my-1;
+  }
+
+  .ProseMirror blockquote {
+    @apply border-l-4 border-teal pl-4 italic text-ink-muted my-2;
+  }
+
+  .ProseMirror code {
+    @apply bg-warm-bg/50 px-2 py-1 rounded font-mono text-sm;
+  }
+
+  .ProseMirror pre {
+    @apply bg-warm-bg/70 p-3 rounded-lg overflow-x-auto my-2;
+  }
+
+  .ProseMirror pre code {
+    @apply bg-transparent px-0 py-0;
+  }
+
+  .ProseMirror strong {
+    @apply font-bold;
+  }
+
+  .ProseMirror em {
+    @apply italic;
+  }
+
+  .ProseMirror mark {
+    @apply bg-yellow-200/40;
+  }
+
+  .ProseMirror a {
+    @apply text-teal underline hover:text-teal/80;
+  }
+}
+
+@keyframes pulseSoft {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}

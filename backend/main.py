@@ -1,24 +1,46 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from services.wellness import generate_wellness_advice
 
-app = FastAPI()
+from api.auth_routes import router as auth_router
+from api.routes import router
+from middleware.auth_middleware import AuthMiddleware
+from services.simulation import simulator
 
-# Enable CORS for frontend/React integration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+# Frontend dev origins (Vite)
+CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await simulator.start()
+    yield
+    await simulator.stop()
+
+
+app = FastAPI(
+    title="Ethio-Vitality AI",
+    description="B2B2C wellness API — JWT + RBAC + MQTT-ready Digital Twin",
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
-# Global state - Always include all keys to prevent errors
-latest_data = {"heart_rate": 0, "stress_level": 0, "timestamp": "N/A"}
+# Auth runs first; CORS added last so it wraps ALL responses (including 401/403).
+app.add_middleware(AuthMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Role", "Accept"],
+    expose_headers=["*"],
+)
 
-@app.get("/api/v1/sensors/latest")
-async def get_latest():
-    return latest_data
-
-@app.get("/api/v1/wellness/advice")
-async def get_advice(lang: str = "en"):
-    return generate_wellness_advice(latest_data["stress_level"], lang)
+app.include_router(auth_router)
+app.include_router(router)
