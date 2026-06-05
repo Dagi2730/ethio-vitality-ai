@@ -163,13 +163,20 @@ def _build_instruction(
 
     crisis_line = ""
     if crisis.get("active") or _user_message_suggests_crisis(user_input):
+        # ✅ FIX 1: Crisis path includes Amanuel Hospital for Ethiopian context
         crisis_line = (
             f"\nCRISIS: Ask 'Are you safe right now?' Stay present. "
-            f"Befrienders Ethiopia: {BEFRIENDERS_ETHIOPIA}. Do not pivot away quickly.\n"
+            f"Befrienders Ethiopia: {BEFRIENDERS_ETHIOPIA}. "
+            f"Amanuel Mental Health Hospital Addis Ababa: +251 11 275 3400. "
+            f"Do not pivot away quickly.\n"
         )
     elif _user_message_suggests_overwhelm(user_input):
+        # ✅ FIX 3: Suggest breathing in the TEXT reply only — never force the UI overlay.
+        # The frontend will show a "Try breathing exercise" button the user can tap.
         crisis_line = (
-            "\nOVERWHELM: Offer 4-4-6 breathing BEFORE continuing the conversation.\n"
+            "\nOVERWHELM DETECTED: Acknowledge their feeling warmly first. "
+            "Then MENTION (in your text reply) that a 4-4-6 breathing exercise is available "
+            "if they'd like — do NOT make it a command. Keep the conversation going.\n"
         )
 
     twin_block = ""
@@ -209,10 +216,10 @@ def _is_rate_limit_error(exc: Exception) -> bool:
 
 
 def _infer_recommended_action(crisis: dict, reply: str, user_input: str) -> str:
+    # ✅ FIX 3: Overwhelm no longer forces breathing_exercise action automatically.
+    # It only triggers if the AI's reply text actually mentions breathing.
     if crisis.get("active") or _user_message_suggests_crisis(user_input):
-        return "breathing_exercise" if crisis.get("severity") != "none" else "crisis_support"
-    if _user_message_suggests_overwhelm(user_input):
-        return "breathing_exercise"
+        return "crisis_support"
     lower = reply.lower()
     if "breath" in lower or "inhale" in lower or "እስትንፋስ" in reply:
         return "breathing_exercise"
@@ -240,12 +247,15 @@ def _contextual_fallback(
                 "እዚህ ነኝ — አንድ ደቂታ እንቆም።\n\n"
                 + payload["breathing_guide"]
                 + f"\n\nአሁን ደህንነትዎ እንዳለ ያስታውሱኝ? Befrienders Ethiopia: {BEFRIENDERS_ETHIOPIA}\n"
+                "Amanuel Mental Health Hospital: +251 11 275 3400\n"
                 "ከእኔ ጋር ቆይ — እንወያይ።"
             )
         return (
             "Stay with me for a moment — try this breath first:\n\n"
             + payload["breathing_guide"]
-            + f"\n\nAre you safe right now? Befrienders Ethiopia: {BEFRIENDERS_ETHIOPIA}\n"
+            + f"\n\nAre you safe right now?\n"
+            f"Befrienders Ethiopia: {BEFRIENDERS_ETHIOPIA}\n"
+            f"Amanuel Mental Health Hospital (Addis Ababa): +251 11 275 3400\n"
             "I'm not going anywhere. Talk to me."
         )
 

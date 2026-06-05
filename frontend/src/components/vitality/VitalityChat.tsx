@@ -36,7 +36,10 @@ export function VitalityChat() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [voiceOn, setVoiceOn] = useState(true);
+
+  // ✅ FIX 2: Voice is OFF by default — user must opt in by tapping 🔊
+  const [voiceOn, setVoiceOn] = useState(false);
+
   const [showBreathing, setShowBreathing] = useState(false);
   const [breathingData, setBreathingData] = useState<ChatResponsePayload["crisis_support"]>();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -82,14 +85,13 @@ export function VitalityChat() {
       setRecommendedAction(res.recommended_action);
       setCrisisActive(res.crisis.active);
 
-      if (
-        res.recommended_action === "breathing_exercise" ||
-        res.recommended_action === "crisis_support"
-      ) {
+      // ✅ FIX 3: Only store breathing data — NEVER auto-open the overlay.
+      // The user opens it themselves by tapping the "Breathing" button in the message.
+      if (res.crisis_support) {
         setBreathingData(res.crisis_support);
-        setShowBreathing(true);
       }
 
+      // ✅ FIX 2: Only speak if the user has opted in via the 🔊 toggle
       if (voiceOn) speak(res.reply, replyLang);
     } catch {
       const err =
@@ -109,6 +111,7 @@ export function VitalityChat() {
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (voiceOn) stopSpeaking();
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       onSubmit(e as unknown as FormEvent);
@@ -120,6 +123,7 @@ export function VitalityChat() {
       stopListening();
       return;
     }
+    if (voiceOn) stopSpeaking();
     startListening((t) => {
       setInput(t);
       dispatchMessage(t);
@@ -214,6 +218,8 @@ export function VitalityChat() {
                           <p className="whitespace-pre-wrap">{msg.content}</p>
                         </div>
                       )}
+
+                      {/* ✅ FIX 3: Breathing only opens when user taps this button */}
                       {msg.recommendedAction === "breathing_exercise" && (
                         <button
                           type="button"
@@ -222,7 +228,7 @@ export function VitalityChat() {
                             immersive ? "text-white/90" : "text-teal"
                           }`}
                         >
-                          {lang === "am" ? "መተንፈሻ" : "Breathing"}
+                          {lang === "am" ? "🫁 መተንፈሻ ይሞክሩ" : "🫁 Try breathing exercise"}
                         </button>
                       )}
                     </div>
@@ -269,12 +275,16 @@ export function VitalityChat() {
                 <textarea
                   ref={textareaRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    if (voiceOn) stopSpeaking();
+                    setInput(e.target.value);
+                  }}
                   onKeyDown={onKeyDown}
+                  onFocus={() => {
+                    if (voiceOn) stopSpeaking();
+                  }}
                   rows={1}
-                  placeholder={
-                    lang === "am" ? "ይጻፉ…" : "Type here…"
-                  }
+                  placeholder={lang === "am" ? "ይጻፉ…" : "Type here…"}
                   className={`max-h-[100px] min-h-[44px] flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm outline-none ${
                     immersive
                       ? "bg-white/15 text-white placeholder:text-white/50"
@@ -314,19 +324,22 @@ export function VitalityChat() {
                     <MicIcon large />
                   </button>
                 )}
+
+                {/* ✅ FIX 2: Voice toggle — clearly shows current state */}
                 <button
                   type="button"
                   onClick={() => {
                     setVoiceOn((v) => !v);
                     if (voiceOn) stopSpeaking();
                   }}
-                  className={`rounded-full p-3 text-lg ${
+                  className={`rounded-full p-3 text-lg transition ${
                     immersive ? "text-white/70 hover:text-white" : "text-ink-muted"
                   }`}
-                  title={voiceOn ? "Mute replies" : "Voice replies on"}
+                  title={voiceOn ? "Turn off voice replies" : "Turn on voice replies"}
                 >
                   {voiceOn ? "🔊" : "🔇"}
                 </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -353,6 +366,7 @@ export function VitalityChat() {
         )}
       </div>
 
+      {/* ✅ FIX 3: Only renders when user explicitly triggered it */}
       {showBreathing && (
         <BreathingGuide
           guideText={breathingData?.breathing_guide}
