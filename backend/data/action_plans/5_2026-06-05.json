@@ -1,0 +1,46 @@
+{
+  "date": "2026-06-05",
+  "user_id": 5,
+  "generated_at": "2026-06-05T14:00:26.310547+00:00",
+  "status_summary": "Here's your personalised plan for today.",
+  "active_conditions": [],
+  "total_minutes": 24,
+  "actions": [
+    {
+      "id": "prayer_moment",
+      "title": "Moment of Prayer or Stillness",
+      "description": "3 minutes of quiet prayer, reflection, or gratitude.",
+      "duration": 3,
+      "category": "spiritual",
+      "emoji": "\ud83d\udd4a\ufe0f",
+      "completed": false,
+      "reminder_sent": true
+    },
+    {
+      "id": "water_intake",
+      "title": "Drink a Full Glass of Water",
+      "description": "Mild dehydration increases perceived stress.",
+      "duration": 1,
+      "category": "nutrition",
+      "emoji": "\ud83e\udd64",
+      "completed": false,
+      "reminder_sent": true
+    },
+    {
+      "id": "injera_mindful",
+      "title": "Eat One Meal Without Your Phone",
+      "description": "Mindful eating reduces stress hormones.",
+      "duration": 20,
+      "category": "nutrition",
+      "emoji": "\ud83c\udf7d\ufe0f",
+      "completed": false,
+      "reminder_sent": false
+    }
+  ],
+  "vitals_snapshot": {
+    "heart_rate": 88,
+    "stress_level": 63,
+    "spo2": 95.3,
+    "mood": "focused"
+  }
+}

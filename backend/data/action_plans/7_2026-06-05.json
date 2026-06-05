@@ -1,0 +1,68 @@
+{
+  "date": "2026-06-05",
+  "user_id": 7,
+  "generated_at": "2026-06-05T14:00:26.422894+00:00",
+  "status_summary": "Stress is elevated (74/100). Today's plan targets nervous system relief.",
+  "active_conditions": [
+    "high_stress"
+  ],
+  "total_minutes": 38,
+  "actions": [
+    {
+      "id": "box_breathing",
+      "title": "Box Breathing",
+      "description": "Inhale 4, hold 4, exhale 4, hold 4. Repeat 5 times.",
+      "duration": 5,
+      "category": "breathwork",
+      "emoji": "\ud83e\udec1",
+      "completed": false,
+      "reminder_sent": true
+    },
+    {
+      "id": "cold_water_face",
+      "title": "Cold Water Reset",
+      "description": "Splash cold water on face and wrists for 30 seconds.",
+      "duration": 2,
+      "category": "physical",
+      "emoji": "\ud83d\udca7",
+      "completed": false,
+      "reminder_sent": true
+    },
+    {
+      "id": "stress_journal",
+      "title": "Stress Dump Journal",
+      "description": "Write everything stressing you \u2014 no editing, no judgment.",
+      "duration": 10,
+      "category": "journaling",
+      "emoji": "\ud83d\udcdd",
+      "completed": false,
+      "reminder_sent": false
+    },
+    {
+      "id": "water_intake",
+      "title": "Drink a Full Glass of Water",
+      "description": "Mild dehydration increases perceived stress.",
+      "duration": 1,
+      "category": "nutrition",
+      "emoji": "\ud83e\udd64",
+      "completed": false,
+      "reminder_sent": false
+    },
+    {
+      "id": "injera_mindful",
+      "title": "Eat One Meal Without Your Phone",
+      "description": "Mindful eating reduces stress hormones.",
+      "duration": 20,
+      "category": "nutrition",
+      "emoji": "\ud83c\udf7d\ufe0f",
+      "completed": false,
+      "reminder_sent": false
+    }
+  ],
+  "vitals_snapshot": {
+    "heart_rate": 74,
+    "stress_level": 74,
+    "spo2": 96.2,
+    "mood": "focused"
+  }
+}

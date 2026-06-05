@@ -1,14 +1,23 @@
 {
   "date": "2026-06-05",
-  "user_id": 1,
-  "generated_at": "2026-06-05T09:55:03.063369+00:00",
-  "status_summary": "Your oxygen is low (93.9%). Today's plan prioritises breathing and recovery.",
+  "user_id": 6,
+  "generated_at": "2026-06-05T14:00:26.368930+00:00",
+  "status_summary": "Stress is elevated (77/100). Today's plan targets nervous system relief.",
   "active_conditions": [
-    "high_stress",
-    "low_spo2"
+    "high_stress"
   ],
-  "total_minutes": 23,
+  "total_minutes": 21,
   "actions": [
+    {
+      "id": "stress_journal",
+      "title": "Stress Dump Journal",
+      "description": "Write everything stressing you \u2014 no editing, no judgment.",
+      "duration": 10,
+      "category": "journaling",
+      "emoji": "\ud83d\udcdd",
+      "completed": false,
+      "reminder_sent": true
+    },
     {
       "id": "box_breathing",
       "title": "Box Breathing",
@@ -18,26 +27,6 @@
       "emoji": "\ud83e\udec1",
       "completed": false,
       "reminder_sent": true
-    },
-    {
-      "id": "deep_breathing_o2",
-      "title": "Oxygen Recovery Breathing",
-      "description": "Open a window. Breathe in 6 counts, out 8. Do for 3 minutes.",
-      "duration": 3,
-      "category": "breathwork",
-      "emoji": "\ud83c\udf2c\ufe0f",
-      "completed": false,
-      "reminder_sent": true
-    },
-    {
-      "id": "stress_journal",
-      "title": "Stress Dump Journal",
-      "description": "Write everything stressing you \u2014 no editing, no judgment.",
-      "duration": 10,
-      "category": "journaling",
-      "emoji": "\ud83d\udcdd",
-      "completed": false,
-      "reminder_sent": false
     },
     {
       "id": "cold_water_face",
@@ -58,12 +47,22 @@
       "emoji": "\ud83d\udd4a\ufe0f",
       "completed": false,
       "reminder_sent": false
+    },
+    {
+      "id": "water_intake",
+      "title": "Drink a Full Glass of Water",
+      "description": "Mild dehydration increases perceived stress.",
+      "duration": 1,
+      "category": "nutrition",
+      "emoji": "\ud83e\udd64",
+      "completed": false,
+      "reminder_sent": false
     }
   ],
   "vitals_snapshot": {
-    "heart_rate": 89,
-    "stress_level": 76,
-    "spo2": 93.9,
+    "heart_rate": 93,
+    "stress_level": 77,
+    "spo2": 96.5,
     "mood": "anxious"
   }
 }
