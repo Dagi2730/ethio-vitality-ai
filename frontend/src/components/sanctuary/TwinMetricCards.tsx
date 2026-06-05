@@ -46,7 +46,7 @@ export function TwinMetricCards() {
   const stress = useCountUp(stressRaw, 800, true);
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
       <article className="glass-card flex items-center gap-4">
         <MetricRing pct={Math.min(100, (typeof hrRaw === "number" ? hrRaw : 72) / 1.2)} color="#1D9E75">
           <span className="text-xl font-medium text-ink">{typeof hrRaw === "number" ? hr : "—"}</span>

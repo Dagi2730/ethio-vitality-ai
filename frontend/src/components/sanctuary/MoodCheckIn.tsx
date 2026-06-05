@@ -25,11 +25,21 @@ export function MoodCheckIn({ compact }: Props) {
   const moodInsight = useWellnessStore((s) => s.moodInsight);
   const logMood = useWellnessStore((s) => s.logMood);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   async function pick(sentiment: MoodSentiment, emoji: string) {
-    await logMood(sentiment, emoji);
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 1200);
+    if (saving) return;
+    setSaving(true);
+    setSaveError(false);
+    const ok = await logMood(sentiment, emoji);
+    setSaving(false);
+    if (ok) {
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1200);
+    } else {
+      setSaveError(true);
+    }
   }
 
   return (
@@ -45,6 +55,7 @@ export function MoodCheckIn({ compact }: Props) {
             key={m.sentiment}
             type="button"
             onClick={() => pick(m.sentiment, m.emoji)}
+            disabled={saving}
             className={`mood-pill ${m.tint} ${
               mood?.sentiment === m.sentiment ? "mood-pill-active" : ""
             }`}
@@ -59,9 +70,19 @@ export function MoodCheckIn({ compact }: Props) {
           </button>
         ))}
       </div>
+      {saving && (
+        <p className="mt-3 text-center text-sm text-ink-muted" aria-live="polite">
+          {lang === "am" ? "በመቀመጥ ላይ..." : "Saving..."}
+        </p>
+      )}
       {savedFlash && (
         <p className="mt-3 animate-fade-in text-center text-sm text-teal" aria-live="polite">
           ✓ {lang === "am" ? "ተመዝግቧል" : "Saved"}
+        </p>
+      )}
+      {saveError && (
+        <p className="mt-3 text-center text-sm text-red-600" aria-live="polite">
+          {lang === "am" ? "መቀመጥ አልተሳካም" : "Failed to save — try again"}
         </p>
       )}
       {moodInsight && !savedFlash && (

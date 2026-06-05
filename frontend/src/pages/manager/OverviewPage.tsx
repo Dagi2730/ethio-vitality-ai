@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BurnoutRiskDashboard } from "../../components/b2b/BurnoutRiskDashboard";
 import { InsightsOverview } from "../../components/b2b/InsightsOverview";
+import { LiveVitalsStats } from "../../components/b2b/LiveVitalsStats";
 import { DepartmentStressChart } from "../../components/charts/DepartmentStressChart";
 import { useWellnessStore } from "../../store/wellnessStore";
 import { useAuthStore } from "../../store/authStore";
@@ -36,6 +37,16 @@ export function OverviewPage() {
         </p>
       )}
       <InsightsOverview org={insights.organization} />
+      <LiveVitalsStats
+        readings_count={insights.readings_count}
+        data_source={insights.data_source}
+        burnout_risk_percent={insights.burnout_risk_percent}
+        low_oxygen_episodes={insights.low_oxygen_episodes}
+        heart_rate={insights.heart_rate}
+        stress_level={insights.stress_level}
+        spo2={insights.spo2}
+        alert_summary={insights.alert_summary}
+      />
       <div className="grid gap-6 xl:grid-cols-2">
         <DepartmentStressChart departments={insights.departments} />
         <BurnoutRiskDashboard departments={insights.departments} alerts={insights.alerts} />

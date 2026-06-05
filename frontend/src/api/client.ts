@@ -39,15 +39,35 @@ export type LoginResult = {
   user: AuthUser;
 };
 
+function parseApiError(body: unknown, fallback: string): string {
+  if (!body || typeof body !== "object") return fallback;
+  const detail = (body as { detail?: unknown }).detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0] as { msg?: string };
+    return first.msg || fallback;
+  }
+  return fallback;
+}
+
+export async function checkBackendHealth(): Promise<boolean> {
+  try {
+    const res = await authFetch("/api/v1/auth/health");
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function login(email: string, password: string): Promise<LoginResult> {
   const res = await authFetch("/api/v1/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail || "Login failed");
+    throw new Error(parseApiError(err, "Invalid email or password"));
   }
   return res.json();
 }
@@ -112,10 +132,12 @@ export type AnomalyPoint = {
 export type SensorReading = {
   heart_rate: number;
   stress_level: number;
+  spo2?: number;
   simulated_mood?: string;
   sleep_hours?: number;
   timestamp: string;
   source?: string;
+  alerts?: string[];
 };
 
 export type Trigger = {
@@ -131,10 +153,47 @@ export type Trigger = {
 
 export type DashboardPayload = {
   vitals: SensorReading;
-  mood: { sentiment: string; emoji: string } | null;
+  mood: { sentiment: string; emoji: string; timestamp?: string } | null;
   triggers: Trigger[];
   narrative: { stage: string; label_en: string; label_am: string };
   anomalies: unknown[];
+  alerts?: string[];
+  wellness_score?: number;
+};
+
+export type ActionPlanItem = {
+  id: string;
+  title: string;
+  description: string;
+  duration: number;
+  category: string;
+  emoji: string;
+  completed: boolean;
+  reminder_sent?: boolean;
+};
+
+export type ActionPlan = {
+  date: string;
+  status_summary: string;
+  active_conditions: string[];
+  total_minutes: number;
+  actions: ActionPlanItem[];
+  vitals_snapshot?: {
+    heart_rate?: number;
+    stress_level?: number;
+    spo2?: number;
+    mood?: string;
+  };
+};
+
+export type CommunityPost = {
+  id: string;
+  author: string;
+  content: string;
+  category: string;
+  likes: number;
+  replies: Array<{ id: string; author: string; content: string; timestamp: string }>;
+  timestamp: string;
 };
 
 export type ChatResponsePayload = {
@@ -219,6 +278,18 @@ export type RoutineBlock = {
 
 export type BusinessInsights = {
   privacy_notice: string;
+  data_source?: string;
+  readings_count?: number;
+  burnout_risk_percent?: number;
+  low_oxygen_episodes?: number;
+  heart_rate?: { avg: number | null; min: number | null; max: number | null; latest: number | null };
+  stress_level?: { avg: number | null; min: number | null; max: number | null; latest: number | null };
+  spo2?: { avg: number | null; min: number | null; max: number | null; latest: number | null };
+  alert_summary?: {
+    high_stress_readings: number;
+    low_spo2_readings: number;
+    critical_spo2_readings: number;
+  };
   organization: {
     average_stress: number;
     classification: string;
@@ -312,8 +383,46 @@ export async function fetchJournal(): Promise<{ entries: JournalEntry[] }> {
   return apiFetch("/api/v1/journal");
 }
 
-export async function fetchRoutine(lang: string) {
+export async function fetchRoutine(lang: string): Promise<ActionPlan & { legacy_blocks?: unknown[] }> {
   return apiFetch(`/api/v1/routine?lang=${lang}`);
+}
+
+export async function refreshActionPlan(): Promise<ActionPlan> {
+  return apiFetch("/api/v1/routine/refresh", { method: "POST" });
+}
+
+export async function completeAction(actionId: string) {
+  return apiFetch(`/api/v1/routine/complete/${actionId}`, { method: "POST" });
+}
+
+export async function fetchCommunityPosts(category = "all"): Promise<{ posts: CommunityPost[] }> {
+  return apiFetch(`/api/v1/community/posts?category=${category}`);
+}
+
+export async function postCommunityPost(
+  content: string,
+  category: string,
+  anonymous: boolean
+) {
+  return apiFetch("/api/v1/community/posts", {
+    method: "POST",
+    body: JSON.stringify({ content, category, anonymous }),
+  });
+}
+
+export async function replyCommunityPost(postId: string, content: string, anonymous: boolean) {
+  return apiFetch(`/api/v1/community/posts/${postId}/reply`, {
+    method: "POST",
+    body: JSON.stringify({ content, anonymous }),
+  });
+}
+
+export async function likeCommunityPost(postId: string) {
+  return apiFetch(`/api/v1/community/posts/${postId}/like`, { method: "POST" });
+}
+
+export async function fetchMoodHistory() {
+  return apiFetch("/api/v1/mood/history");
 }
 
 export async function fetchBusinessInsights(): Promise<BusinessInsights> {

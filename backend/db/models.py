@@ -53,6 +53,7 @@ class VitalReading(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     heart_rate: Mapped[int] = mapped_column(Integer)
     stress_level: Mapped[int] = mapped_column(Integer)
+    spo2: Mapped[float] = mapped_column(Float, default=98.0)
     simulated_mood: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     sleep_hours: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     source: Mapped[str] = mapped_column(String(32), default="simulation")

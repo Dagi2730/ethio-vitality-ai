@@ -38,7 +38,7 @@ class WellnessSimulator:
     def _circadian_factor(hour: float) -> float:
         return 0.5 + 0.5 * math.sin((hour - 6) * math.pi / 12)
 
-    def _sample_metrics(self, user_id: int) -> tuple[int, int, str, float]:
+    def _sample_metrics(self, user_id: int) -> tuple[int, int, float, str, float]:
         now = datetime.now()
         hour = now.hour + now.minute / 60
         circadian = self._circadian_factor(hour)
@@ -51,9 +51,14 @@ class WellnessSimulator:
         if 7 <= hour <= 9 or 17 <= hour <= 19:
             base_stress += random.uniform(5, 18)
         stress = int(max(STRESS_MIN, min(STRESS_MAX, base_stress + random.gauss(0, 8))))
+
+        # SpO2 inversely correlates with stress; dips slightly under high HR
+        spo2_base = 98.5 - (stress / 100) * 4 - max(0, heart_rate - 90) * 0.05
+        spo2 = round(max(88.0, min(100.0, spo2_base + random.gauss(0, 0.8))), 1)
+
         mood = _stress_to_mood(stress, hour)
         sleep_hours = round(5.5 + 2 * (1 - circadian) + random.uniform(-0.3, 0.3), 1)
-        return heart_rate, stress, mood, sleep_hours
+        return heart_rate, stress, spo2, mood, sleep_hours
 
     def _maybe_flag_stress_event(self, user_id: int, heart_rate: int, stress: int) -> None:
         prev = self._prev_stress.get(user_id, 35.0)
@@ -79,9 +84,15 @@ class WellnessSimulator:
         finally:
             db.close()
         for uid in user_ids:
-            hr, stress, mood, sleep_h = self._sample_metrics(uid)
+            hr, stress, spo2, mood, sleep_h = self._sample_metrics(uid)
             data_store.ingest_reading(
-                uid, hr, stress, source="simulation", simulated_mood=mood, sleep_hours=sleep_h
+                uid,
+                hr,
+                stress,
+                spo2=spo2,
+                source="simulation",
+                simulated_mood=mood,
+                sleep_hours=sleep_h,
             )
             self._maybe_flag_stress_event(uid, hr, stress)
 

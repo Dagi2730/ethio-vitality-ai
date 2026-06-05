@@ -1,3 +1,5 @@
+import asyncio
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -7,6 +9,7 @@ from api.auth_routes import router as auth_router
 from api.routes import router
 from db.init_db import init_database
 from middleware.auth_middleware import AuthMiddleware
+from services.reminder_service import reminder_scheduler_loop
 from services.simulation import simulator
 
 CORS_ORIGINS = [
@@ -20,9 +23,13 @@ CORS_ORIGINS = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_database()
-    await simulator.start()
+    use_hardware = os.getenv("USE_HARDWARE", "false").lower() == "true"
+    if not use_hardware:
+        await simulator.start()
+    asyncio.create_task(reminder_scheduler_loop())
     yield
-    await simulator.stop()
+    if not use_hardware:
+        await simulator.stop()
 
 
 app = FastAPI(

@@ -31,6 +31,7 @@ def ingest_reading(
     heart_rate: int,
     stress_level: int,
     *,
+    spo2: float = 98.0,
     source: str = "simulation",
     simulated_mood: Optional[str] = None,
     sleep_hours: Optional[float] = None,
@@ -42,10 +43,19 @@ def ingest_reading(
             user_id,
             heart_rate,
             stress_level,
+            spo2=spo2,
             source=source,
             simulated_mood=simulated_mood,
             sleep_hours=sleep_hours,
         )
+    finally:
+        db.close()
+
+
+def get_shared_history(viewer_role: str, limit: int = 200) -> list[dict[str, Any]]:
+    db = _db()
+    try:
+        return repository.get_shared_vital_history(db, viewer_role, limit=limit)
     finally:
         db.close()
 

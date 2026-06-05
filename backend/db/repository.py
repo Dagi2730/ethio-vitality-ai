@@ -107,6 +107,7 @@ def ingest_vital(
     heart_rate: int,
     stress_level: int,
     *,
+    spo2: float = 98.0,
     source: str = "simulation",
     simulated_mood: Optional[str] = None,
     sleep_hours: Optional[float] = None,
@@ -115,6 +116,7 @@ def ingest_vital(
         user_id=user_id,
         heart_rate=heart_rate,
         stress_level=stress_level,
+        spo2=spo2,
         source=source,
         simulated_mood=simulated_mood,
         sleep_hours=sleep_hours,
@@ -136,6 +138,7 @@ def get_latest_vital(db: Session, user_id: int) -> dict[str, Any]:
         return {
             "heart_rate": 72,
             "stress_level": 35,
+            "spo2": 98.0,
             "simulated_mood": "calm",
             "sleep_hours": 6.5,
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -316,6 +319,7 @@ def get_clinical_patients(db: Session) -> list[dict[str, Any]]:
         stress = int(latest.get("stress_level", 0)) if priv.share_vitals else 0
         hr = int(latest.get("heart_rate", 0)) if priv.share_vitals else 0
         risk = "high" if stress >= 70 else "medium" if stress >= 45 else "low"
+        spo2 = float(latest.get("spo2", 98.0)) if priv.share_vitals else 98.0
         patients.append(
             {
                 "id": str(u.id),
@@ -324,6 +328,7 @@ def get_clinical_patients(db: Session) -> list[dict[str, Any]]:
                 "room": f"Ward-{u.id % 5 + 1}{chr(65 + u.id % 4)}",
                 "heartRate": hr,
                 "stressLevel": stress,
+                "spo2": spo2,
                 "simulatedMood": latest.get("simulated_mood") or (mood or {}).get("sentiment", "calm"),
                 "riskBand": risk,
                 "lastUpdated": latest.get("timestamp", ""),
@@ -423,10 +428,27 @@ def get_all_user_ids(db: Session) -> list[int]:
     return [u.id for u in db.query(User).filter(User.role == "user").all()]
 
 
+def get_shared_vital_history(
+    db: Session, viewer_role: str, limit: int = 200
+) -> list[dict[str, Any]]:
+    """Aggregated vital history from users who opted in to share vitals."""
+    users = list_users_for_professional(db, viewer_role)
+    readings: list[dict[str, Any]] = []
+    for u in users:
+        priv = get_privacy(db, u.id)
+        if not priv.share_vitals:
+            continue
+        for r in get_vital_history(db, u.id, limit=limit):
+            readings.append(r)
+    readings.sort(key=lambda x: x.get("timestamp", ""))
+    return readings[-limit:]
+
+
 def _vital_to_dict(row: VitalReading) -> dict[str, Any]:
     return {
         "heart_rate": row.heart_rate,
         "stress_level": row.stress_level,
+        "spo2": getattr(row, "spo2", None) or 98.0,
         "simulated_mood": row.simulated_mood,
         "sleep_hours": row.sleep_hours,
         "timestamp": row.timestamp.isoformat() if row.timestamp else "",

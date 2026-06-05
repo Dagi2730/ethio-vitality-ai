@@ -8,6 +8,7 @@ import { CoachPage } from "./pages/personal/CoachPage";
 import { InsightsPage } from "./pages/personal/InsightsPage";
 import { ReflectPage } from "./pages/personal/ReflectPage";
 import { ActionsPage } from "./pages/personal/ActionsPage";
+import { CommunityPage } from "./pages/personal/CommunityPage";
 import { PrivacyPage } from "./pages/personal/PrivacyPage";
 import { CorporateHealthHeatmap } from "./pages/corporate/CorporateHealthHeatmap";
 import { OverviewPage } from "./pages/manager/OverviewPage";
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/personal/insights" element={<InsightsPage />} />
         <Route path="/personal/reflect" element={<ReflectPage />} />
         <Route path="/personal/actions" element={<ActionsPage />} />
+        <Route path="/personal/community" element={<CommunityPage />} />
         <Route path="/personal/privacy" element={<PrivacyPage />} />
 
         {/* Corporate (HR) */}

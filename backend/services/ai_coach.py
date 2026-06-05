@@ -149,6 +149,7 @@ def _build_instruction(
 ) -> str:
     hr = current_data.get("heart_rate", "—")
     stress = current_data.get("stress_level", "—")
+    spo2 = current_data.get("spo2", "—")
     sleep = current_data.get("sleep_hours", "—")
     sim_mood = current_data.get("simulated_mood", "—")
 
@@ -173,9 +174,13 @@ def _build_instruction(
 
     twin_block = ""
     if audience_role == "user" and (hr != "—" or stress != "—"):
+        spo2_note = ""
+        if isinstance(spo2, (int, float)) and spo2 < 95:
+            spo2_note = f" SpO₂ is low ({spo2}%) — mention gentle breathing and fresh air.\n"
         twin_block = (
-            f"Digital Twin snapshot — HR: {hr} BPM, Stress: {stress}%, "
+            f"Digital Twin snapshot — HR: {hr} BPM, Stress: {stress}%, SpO₂: {spo2}%, "
             f"Sleep (sim): {sleep}h, Twin mood: {sim_mood}.\n"
+            + spo2_note
             + vitals_trend
             + mood_line
         )

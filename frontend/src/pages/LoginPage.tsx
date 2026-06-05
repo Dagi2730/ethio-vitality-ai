@@ -1,6 +1,6 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { login as apiLogin, signup as apiSignup } from "../api/client";
+import { checkBackendHealth, login as apiLogin, signup as apiSignup } from "../api/client";
 import { getHomeForRole, redirectPathForRole } from "../config/roleRoutes";
 import { SanctuaryMesh } from "../components/sanctuary/SanctuaryMesh";
 import { useAuthStore, type AppRole } from "../store/authStore";
@@ -18,14 +18,22 @@ export function LoginPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const authLogin = useAuthStore((s) => s.login);
+  const logout = useAuthStore((s) => s.logout);
 
   const [mode, setMode] = useState<Mode>("login");
+  const [backendOk, setBackendOk] = useState<boolean | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("General");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    checkBackendHealth().then(setBackendOk);
+    const id = setInterval(() => checkBackendHealth().then(setBackendOk), 10000);
+    return () => clearInterval(id);
+  }, []);
 
   if (isAuthenticated && user) {
     return <Navigate to={getHomeForRole(user.role)} replace />;
@@ -48,9 +56,15 @@ export function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const em = creds?.email ?? email;
+    logout();
+    const em = (creds?.email ?? email).trim().toLowerCase();
     const pw = creds?.password ?? password;
     try {
+      if (backendOk === false) {
+        throw new Error(
+          "Backend is not running. Start it with: cd backend && python -m uvicorn main:app --reload --port 8000"
+        );
+      }
       if (mode === "signup" && !creds) {
         const res = await apiSignup(em, pw, name, department);
         await completeAuth(res);
@@ -110,6 +124,16 @@ export function LoginPage() {
               ? "Sign in to your sanctuary"
               : "Register as a personal wellness user (8+ char password with letters & numbers)"}
           </p>
+
+          {backendOk === false && (
+            <p className="mt-4 rounded-2xl bg-amber-wash px-4 py-3 text-sm text-ink">
+              API offline — start the backend first:{" "}
+              <code className="text-xs">cd backend && python -m uvicorn main:app --reload --port 8000</code>
+            </p>
+          )}
+          {backendOk === true && (
+            <p className="mt-4 text-xs text-teal">✓ Backend connected</p>
+          )}
 
           <form onSubmit={(e) => submit(e)} className="mt-6 space-y-4">
             {mode === "signup" && (
@@ -180,7 +204,9 @@ export function LoginPage() {
                     className="w-full rounded-2xl border border-white/60 bg-white/50 px-4 py-3 text-left text-sm transition hover:bg-teal-light/50"
                   >
                     <span className="font-medium text-ink">{d.label}</span>
-                    <span className="mt-0.5 block text-xs text-ink-muted">{d.email}</span>
+                    <span className="mt-0.5 block text-xs text-ink-muted">
+                      {d.email} · password: {d.password}
+                    </span>
                   </button>
                 ))}
               </div>

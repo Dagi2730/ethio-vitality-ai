@@ -4,8 +4,8 @@ import { useWellnessStore } from "../../store/wellnessStore";
 const tabs = [
   { to: "/personal", end: true, icon: "🏠", label: "Space" },
   { to: "/personal/coach", icon: "🌿", label: "Vitality" },
-  { to: "/personal/reflect", icon: "📔", label: "Journal" },
-  { to: "/personal/insights", icon: "📊", label: "Insights" },
+  { to: "/personal/actions", icon: "✨", label: "Actions" },
+  { to: "/personal/community", icon: "🫂", label: "Community" },
 ];
 
 export function MobilePersonalNav() {

@@ -34,7 +34,8 @@ type WellnessState = {
   setLang: (lang: "en" | "am") => void;
   setRecommendedAction: (action: string | null) => void;
   setCrisisActive: (active: boolean) => void;
-  logMood: (sentiment: MoodSentiment, emoji: string) => Promise<void>;
+  logMood: (sentiment: MoodSentiment, emoji: string) => Promise<boolean>;
+  hydrateMood: (mood: { sentiment: MoodSentiment; emoji: string; timestamp?: string } | null) => void;
   pollSensors: () => Promise<void>;
   fetchInsights: () => Promise<void>;
   startPolling: () => void;
@@ -75,16 +76,34 @@ export const useWellnessStore = create<WellnessState>((set, get) => ({
   setRecommendedAction: (recommendedAction) => set({ recommendedAction }),
   setCrisisActive: (crisisActive) => set({ crisisActive }),
 
+  hydrateMood: (mood) => {
+    if (mood?.sentiment && mood?.emoji) {
+      set({
+        mood: {
+          sentiment: mood.sentiment as MoodSentiment,
+          emoji: mood.emoji,
+          timestamp: mood.timestamp,
+        },
+      });
+    }
+  },
+
   logMood: async (sentiment, emoji) => {
     try {
       const data = await postMood(sentiment, emoji);
+      if (data.status !== "saved") {
+        set({ error: "Could not save mood" });
+        return false;
+      }
       set({
         mood: { sentiment, emoji, timestamp: data.mood.timestamp },
         moodInsight: data.insight,
         error: null,
       });
+      return true;
     } catch {
       set({ error: "Could not save mood" });
+      return false;
     }
   },
 

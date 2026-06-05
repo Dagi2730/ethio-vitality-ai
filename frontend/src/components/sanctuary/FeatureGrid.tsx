@@ -38,13 +38,22 @@ const features = [
     descAm: "ደረጃ",
     gradient: "from-sanctuary-peach/50 to-amber-wash/80",
   },
+  {
+    to: "/personal/community",
+    icon: "🫂",
+    en: "Community",
+    am: "ማህበረሰብ",
+    descEn: "Peer support",
+    descAm: "ድጋፍ",
+    gradient: "from-sanctuary-rose/50 to-sanctuary-lavender/40",
+  },
 ];
 
 export function FeatureGrid() {
   const lang = useWellnessStore((s) => s.lang);
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {features.map((f) => (
         <Link
           key={f.to}

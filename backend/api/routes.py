@@ -10,6 +10,8 @@ from db import repository
 from models.schemas import (
     ChatRequest,
     ChatResponse,
+    CommunityPostBody,
+    CommunityReplyBody,
     CrisisInfo,
     HabitsUpdate,
     JournalRequest,
@@ -17,6 +19,7 @@ from models.schemas import (
     MoodRequest,
     MoodResponse,
     PrivacyUpdate,
+    VitalIngestRequest,
 )
 from services import data_store
 from services.activity import log_user_activity
@@ -36,6 +39,14 @@ from services.rbac import (
     require_professional,
     require_user,
 )
+from services.action_plan_service import (
+    generate_daily_plan,
+    get_incomplete_actions,
+    get_todays_plan,
+    mark_action_complete,
+)
+from services.community_service import add_reply, create_post, get_posts, like_post
+from services.reminder_service import trigger_reminder_for_user
 from services.routine_builder import build_daily_routine
 from services.triggers import detect_triggers, narrative_stage
 
@@ -47,6 +58,28 @@ def _uid(user: dict) -> int:
     if not uid:
         raise HTTPException(401, "Invalid session — please sign in again")
     return int(uid)
+
+
+def _compute_alerts(reading: dict) -> list[str]:
+    alerts = []
+    if reading.get("heart_rate", 0) > 100:
+        alerts.append("Elevated heart rate detected")
+    if reading.get("stress_level", 0) > 70:
+        alerts.append("High stress — consider a breathing exercise")
+    if reading.get("spo2", 100) < 95:
+        alerts.append("Low oxygen saturation — seek fresh air")
+    if reading.get("spo2", 100) < 90:
+        alerts.append("CRITICAL: SpO₂ below 90% — seek medical attention")
+    return alerts
+
+
+def _wellness_score(reading: dict) -> int:
+    stress = reading.get("stress_level", 30)
+    spo2 = reading.get("spo2", 98.0)
+    hr = reading.get("heart_rate", 72)
+    hr_normal = 60 <= hr <= 100
+    score = (100 - stress) * 0.4 + ((spo2 - 85) / 15 * 100) * 0.3 + (30 if hr_normal else 0)
+    return max(0, min(100, round(score)))
 
 
 def _mood_insight(sentiment: str, stress: int, lang: str) -> str:
@@ -71,13 +104,34 @@ async def personal_dashboard(
 ):
     uid = _uid(user)
     log_user_activity(uid, "view", "dashboard", request=None)
+    vitals = data_store.get_latest(uid)
     return {
-        "vitals": data_store.get_latest(uid),
+        "vitals": vitals,
         "mood": data_store.get_latest_mood(uid),
         "triggers": detect_triggers(uid),
         "narrative": narrative_stage(uid),
         "anomalies": detect_anomalies(data_store.get_history(uid, limit=120))[-3:],
+        "alerts": _compute_alerts(vitals),
+        "wellness_score": _wellness_score(vitals),
     }
+
+
+@router.post("/ingest")
+async def ingest_reading(
+    reading: VitalIngestRequest,
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    uid = _uid(user)
+    result = data_store.ingest_reading(
+        uid,
+        heart_rate=reading.heart_rate,
+        stress_level=reading.stress_level,
+        spo2=reading.spo2,
+        source=reading.source,
+        sleep_hours=reading.sleep_hours,
+    )
+    return {"status": "ok", "ingested": result, "alerts": _compute_alerts(result)}
 
 
 @router.get("/sensors/latest")
@@ -85,7 +139,8 @@ async def sensors_latest(
     user: dict = Depends(get_current_user),
     _: Role = Depends(require_user),
 ):
-    return data_store.get_latest(_uid(user))
+    latest = data_store.get_latest(_uid(user))
+    return {**latest, "alerts": _compute_alerts(latest)}
 
 
 @router.get("/sensors/anomalies")
@@ -127,11 +182,29 @@ async def log_mood(
     lang = "am" if request.emoji and ord(request.emoji[0]) > 127 else "en"
     log_user_activity(uid, "log_mood", "mood", detail=request.sentiment)
     return MoodResponse(
+        status="saved",
         mood=mood,
         latest_vitals=vitals,
         insight=_mood_insight(request.sentiment, stress, lang),
         triggers=detect_triggers(uid),
     )
+
+
+@router.get("/mood/history")
+async def mood_history(
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    uid = _uid(user)
+    return {"entries": data_store.get_mood_history(uid, limit=30)}
+
+
+@router.get("/mood/today")
+async def mood_today(
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    return data_store.get_latest_mood(_uid(user))
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -248,9 +321,103 @@ async def get_routine(
     _: Role = Depends(require_user),
 ):
     uid = _uid(user)
-    routine = build_daily_routine(uid, lang if lang in ("en", "am") else "en")
-    data_store.cache_routine(uid, routine)
-    return routine
+    plan = get_todays_plan(uid)
+    legacy = build_daily_routine(uid, lang if lang in ("en", "am") else "en")
+    data_store.cache_routine(uid, legacy)
+    return {**plan, "legacy_blocks": legacy.get("blocks", [])}
+
+
+@router.post("/routine/refresh")
+async def refresh_routine(
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    return generate_daily_plan(_uid(user))
+
+
+@router.post("/routine/complete/{action_id}")
+async def complete_action(
+    action_id: str,
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    uid = _uid(user)
+    updated = mark_action_complete(uid, action_id)
+    completed = sum(1 for a in updated["actions"] if a["completed"])
+    total = len(updated["actions"])
+    return {
+        "status": "completed",
+        "action_id": action_id,
+        "progress": f"{completed}/{total}",
+        "all_done": completed == total,
+        "plan": updated,
+    }
+
+
+@router.get("/routine/incomplete")
+async def incomplete_actions(
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    return {"actions": get_incomplete_actions(_uid(user))}
+
+
+@router.post("/reminders/test")
+async def test_reminder(
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    trigger_reminder_for_user(_uid(user))
+    return {"status": "reminder fired"}
+
+
+@router.get("/community/posts")
+async def list_community_posts(category: str = "all"):
+    return {"posts": get_posts(category)}
+
+
+@router.post("/community/posts")
+async def new_community_post(
+    body: CommunityPostBody,
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    uid = str(_uid(user))
+    post = create_post(
+        author_id=uid,
+        author_name=user.get("name", "Member"),
+        content=body.content,
+        category=body.category,
+        anonymous=body.anonymous,
+    )
+    return post
+
+
+@router.post("/community/posts/{post_id}/reply")
+async def reply_to_post(
+    post_id: str,
+    body: CommunityReplyBody,
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    reply = add_reply(
+        post_id,
+        user.get("name", "Member"),
+        body.content,
+        body.anonymous,
+    )
+    if reply:
+        return reply
+    raise HTTPException(404, "Post not found")
+
+
+@router.post("/community/posts/{post_id}/like")
+async def like_community_post(
+    post_id: str,
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    return {"likes": like_post(post_id)}
 
 
 @router.patch("/habits")

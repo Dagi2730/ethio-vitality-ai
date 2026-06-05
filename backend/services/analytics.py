@@ -30,13 +30,37 @@ def _burnout_risk(avg_stress: float) -> str:
     return "healthy"
 
 
+def _safe_stats(vals: list) -> dict[str, Any]:
+    if not vals:
+        return {"avg": None, "min": None, "max": None, "latest": None}
+    return {
+        "avg": round(mean(vals), 1),
+        "min": min(vals),
+        "max": max(vals),
+        "latest": vals[-1],
+    }
+
+
 def aggregate_business_insights(viewer_role: Role = Role.HR) -> dict[str, Any]:
     db = SessionLocal()
     try:
         role_key = viewer_role.value if isinstance(viewer_role, Role) else str(viewer_role)
         dept_rows = repository.get_department_aggregates(db, role_key)
+        history = repository.get_shared_vital_history(db, role_key, limit=200)
     finally:
         db.close()
+
+    hrs = [r["heart_rate"] for r in history if "heart_rate" in r]
+    stress_vals = [r["stress_level"] for r in history if "stress_level" in r]
+    spo2_vals = [r.get("spo2", 98.0) for r in history if "spo2" in r or "heart_rate" in r]
+
+    high_stress_count = sum(
+        1 for r in history
+        if r.get("stress_level", 0) > 70 and r.get("heart_rate", 0) > 95
+    )
+    low_o2_count = sum(1 for r in history if r.get("spo2", 100) < 95)
+    critical_o2 = sum(1 for r in history if r.get("spo2", 100) < 90)
+    burnout_risk_pct = round(high_stress_count / max(len(history), 1) * 100, 1)
 
     dept_stats = []
     alerts: list[dict[str, Any]] = []
@@ -71,9 +95,27 @@ def aggregate_business_insights(viewer_role: Role = Role.HR) -> dict[str, Any]:
 
     events = data_store.get_stress_events()
     heatmap = _build_burnout_heatmap(dept_stats)
+    latest_hr = hrs[-1] if hrs else None
+    latest_spo2 = spo2_vals[-1] if spo2_vals else None
 
     return {
         "privacy_notice": "Aggregated from users who opted in. No raw journal text exposed.",
+        "data_source": "live_vitals",
+        "readings_count": len(history),
+        "time_range": {
+            "from": history[0]["timestamp"] if history else None,
+            "to": history[-1]["timestamp"] if history else None,
+        },
+        "heart_rate": _safe_stats(hrs),
+        "stress_level": _safe_stats(stress_vals),
+        "spo2": _safe_stats(spo2_vals),
+        "burnout_risk_percent": burnout_risk_pct,
+        "low_oxygen_episodes": low_o2_count,
+        "alert_summary": {
+            "high_stress_readings": high_stress_count,
+            "low_spo2_readings": low_o2_count,
+            "critical_spo2_readings": critical_o2,
+        },
         "organization": {
             "average_stress": org_avg,
             "classification": classify_stress(org_avg),
@@ -81,15 +123,16 @@ def aggregate_business_insights(viewer_role: Role = Role.HR) -> dict[str, Any]:
             "active_alerts": len(alerts),
         },
         "live_digital_twin": {
-            "heart_rate": None,
+            "heart_rate": latest_hr,
             "stress_level": org_avg,
+            "spo2": latest_spo2,
             "classification": classify_stress(org_avg),
-            "timestamp": None,
+            "timestamp": history[-1]["timestamp"] if history else None,
         },
         "departments": dept_stats,
         "stress_distribution": distribution,
         "recent_stress_events": events[-10:],
-        "trend_sample": [],
+        "trend_sample": history[-12:],
         "alerts": alerts,
         "burnout_heatmap": heatmap,
     }
