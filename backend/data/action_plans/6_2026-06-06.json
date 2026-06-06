@@ -37,7 +37,7 @@
       "category": "physical",
       "emoji": "\ud83d\udca7",
       "completed": false,
-      "reminder_sent": false
+      "reminder_sent": true
     },
     {
       "id": "stress_journal",

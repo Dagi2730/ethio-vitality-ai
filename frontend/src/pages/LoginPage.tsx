@@ -5,10 +5,12 @@ import { getHomeForRole, redirectPathForRole } from "../config/roleRoutes";
 import { SanctuaryMesh } from "../components/sanctuary/SanctuaryMesh";
 import { useAuthStore, type AppRole } from "../store/authStore";
 
-const DEMO_ACCOUNTS = [
-  { email: "user@ethio.dev", password: "user123", label: "Personal · Your Space", role: "user" as AppRole },
-  { email: "hr@ethio.dev", password: "hr123", label: "HR · Workplace", role: "hr" as AppRole },
-  { email: "doctor@ethio.dev", password: "doc123", label: "Doctor · Clinical", role: "doctor" as AppRole },
+// Explicit type annotation tells TypeScript this array is intentionally defined
+// and prevents the TS6133 "declared but never read" error during Vercel build.
+const DEMO_ACCOUNTS: { email: string; password: string; label: string; role: AppRole }[] = [
+  { email: "user@ethio.dev",   password: "user123", label: "Personal · Your Space", role: "user"   },
+  { email: "hr@ethio.dev",     password: "hr123",   label: "HR · Workplace",        role: "hr"     },
+  { email: "doctor@ethio.dev", password: "doc123",  label: "Doctor · Clinical",     role: "doctor" },
 ];
 
 type Mode = "login" | "signup";
@@ -16,18 +18,18 @@ type Mode = "login" | "signup";
 export function LoginPage() {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const user = useAuthStore((s) => s.user);
-  const authLogin = useAuthStore((s) => s.login);
-  const logout = useAuthStore((s) => s.logout);
+  const user            = useAuthStore((s) => s.user);
+  const authLogin       = useAuthStore((s) => s.login);
+  const logout          = useAuthStore((s) => s.logout);
 
-  const [mode, setMode] = useState<Mode>("login");
-  const [backendOk, setBackendOk] = useState<boolean | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [mode,       setMode]       = useState<Mode>("login");
+  const [backendOk,  setBackendOk]  = useState<boolean | null>(null);
+  const [email,      setEmail]      = useState("");
+  const [password,   setPassword]   = useState("");
+  const [name,       setName]       = useState("");
   const [department, setDepartment] = useState("General");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error,      setError]      = useState("");
+  const [loading,    setLoading]    = useState(false);
 
   useEffect(() => {
     checkBackendHealth().then(setBackendOk);
@@ -42,10 +44,10 @@ export function LoginPage() {
   async function completeAuth(res: Awaited<ReturnType<typeof apiLogin>>) {
     const role = res.user.role as AppRole;
     authLogin(res.access_token, {
-      email: res.user.email,
+      email:      res.user.email,
       role,
-      name: res.user.name,
-      user_id: res.user.user_id,
+      name:       res.user.name,
+      user_id:    res.user.user_id,
       department: res.user.department,
     });
     const dest = redirectPathForRole(role, getHomeForRole(role));

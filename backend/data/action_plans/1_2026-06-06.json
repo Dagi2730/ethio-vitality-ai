@@ -37,7 +37,7 @@
       "category": "lifestyle",
       "emoji": "\u26a1",
       "completed": false,
-      "reminder_sent": false
+      "reminder_sent": true
     },
     {
       "id": "water_intake",
