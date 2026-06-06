@@ -5,16 +5,13 @@ import { getHomeForRole, redirectPathForRole } from "../config/roleRoutes";
 import { SanctuaryMesh } from "../components/sanctuary/SanctuaryMesh";
 import { useAuthStore, type AppRole } from "../store/authStore";
 
-type Mode = "login" | "signup";
-
-// ✅ FIX: Moved outside component and kept as a plain typed array.
-// The previous version had `as const` which caused TypeScript's noUnusedLocals
-// to misidentify it as unused because the inferred type conflicted with AppRole.
-const DEMO_ACCOUNTS: { email: string; password: string; label: string; role: AppRole }[] = [
-  { email: "user@ethio.dev",   password: "user123", label: "Personal · Your Space", role: "user"   },
-  { email: "hr@ethio.dev",     password: "hr123",   label: "HR · Workplace",        role: "hr"     },
-  { email: "doctor@ethio.dev", password: "doc123",  label: "Doctor · Clinical",     role: "doctor" },
+const DEMO_ACCOUNTS = [
+  { email: "user@ethio.dev", password: "user123", label: "Personal · Your Space", role: "user" as AppRole },
+  { email: "hr@ethio.dev", password: "hr123", label: "HR · Workplace", role: "hr" as AppRole },
+  { email: "doctor@ethio.dev", password: "doc123", label: "Doctor · Clinical", role: "doctor" as AppRole },
 ];
+
+type Mode = "login" | "signup";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -33,10 +30,8 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    checkBackendHealth().then(setBackendOk).catch(() => setBackendOk(false));
-    const id = setInterval(() => {
-      checkBackendHealth().then(setBackendOk).catch(() => setBackendOk(false));
-    }, 15000);
+    checkBackendHealth().then(setBackendOk);
+    const id = setInterval(() => checkBackendHealth().then(setBackendOk), 10000);
     return () => clearInterval(id);
   }, []);
 
@@ -62,11 +57,14 @@ export function LoginPage() {
     setError("");
     setLoading(true);
     logout();
-
     const em = (creds?.email ?? email).trim().toLowerCase();
     const pw = creds?.password ?? password;
-
     try {
+      if (backendOk === false) {
+        throw new Error(
+          "Backend is not running. Start it with: cd backend && python -m uvicorn main:app --reload --port 8000"
+        );
+      }
       if (mode === "signup" && !creds) {
         const res = await apiSignup(em, pw, name, department);
         await completeAuth(res);
@@ -75,8 +73,7 @@ export function LoginPage() {
         await completeAuth(res);
       }
     } catch (err) {
-      setError("Authentication failed. Please check your credentials or API connection.");
-      console.error("Auth error:", err);
+      setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -122,11 +119,20 @@ export function LoginPage() {
           <h1 className="mt-4 font-display text-xl font-medium text-ink">
             {mode === "login" ? "Welcome back" : "Create your account"}
           </h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            {mode === "login"
+              ? "Sign in to your sanctuary"
+              : "Register as a personal wellness user (8+ char password with letters & numbers)"}
+          </p>
 
           {backendOk === false && (
-            <p className="mt-2 text-xs text-amber-600">
-              Note: Connection to server is currently unstable.
+            <p className="mt-4 rounded-2xl bg-amber-wash px-4 py-3 text-sm text-ink">
+              API offline — start the backend first:{" "}
+              <code className="text-xs">cd backend && python -m uvicorn main:app --reload --port 8000</code>
             </p>
+          )}
+          {backendOk === true && (
+            <p className="mt-4 text-xs text-teal">✓ Backend connected</p>
           )}
 
           <form onSubmit={(e) => submit(e)} className="mt-6 space-y-4">
@@ -138,7 +144,7 @@ export function LoginPage() {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40"
+                    className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10"
                     required
                   />
                 </div>
@@ -148,7 +154,7 @@ export function LoginPage() {
                     type="text"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40"
+                    className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10"
                   />
                 </div>
               </>
@@ -159,7 +165,7 @@ export function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40"
+                className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10"
                 required
               />
             </div>
@@ -170,34 +176,41 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={mode === "signup" ? 8 : 4}
-                className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40"
+                className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10"
                 required
               />
             </div>
             {error && <p className="text-sm text-rose-600">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full py-3"
-            >
-              {loading ? "Processing..." : mode === "signup" ? "Create account" : "Begin your journey"}
+            <button type="submit" disabled={loading} className="btn-primary w-full py-3">
+              {loading
+                ? mode === "signup"
+                  ? "Creating account…"
+                  : "Signing in…"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Begin your journey"}
             </button>
           </form>
 
           {mode === "login" && (
-            <div className="mt-6 space-y-2">
-              <p className="text-center text-xs text-ink-muted">Demo accounts</p>
-              {DEMO_ACCOUNTS.map((d) => (
-                <button
-                  key={d.email}
-                  type="button"
-                  onClick={(e) => submit(e, { email: d.email, password: d.password })}
-                  className="w-full rounded-2xl border border-white/60 bg-white/50 px-4 py-2 text-left text-xs"
-                >
-                  <span className="font-medium text-ink">{d.label}</span>
-                </button>
-              ))}
-            </div>
+            <>
+              <p className="mt-6 text-center text-xs text-ink-muted">Demo accounts</p>
+              <div className="mt-2 space-y-2">
+                {DEMO_ACCOUNTS.map((d) => (
+                  <button
+                    key={d.email}
+                    type="button"
+                    onClick={(e) => submit(e, { email: d.email, password: d.password })}
+                    className="w-full rounded-2xl border border-white/60 bg-white/50 px-4 py-3 text-left text-sm transition hover:bg-teal-light/50"
+                  >
+                    <span className="font-medium text-ink">{d.label}</span>
+                    <span className="mt-0.5 block text-xs text-ink-muted">
+                      {d.email} · password: {d.password}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
