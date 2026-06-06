@@ -27,7 +27,7 @@
       "category": "breathwork",
       "emoji": "\ud83c\udf2c\ufe0f",
       "completed": false,
-      "reminder_sent": false
+      "reminder_sent": true
     },
     {
       "id": "stress_journal",

@@ -26,7 +26,7 @@
       "category": "breathwork",
       "emoji": "\ud83e\udec1",
       "completed": false,
-      "reminder_sent": false
+      "reminder_sent": true
     },
     {
       "id": "cold_water_face",
