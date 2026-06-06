@@ -52,19 +52,27 @@ async def lifespan(app: FastAPI):
         print("--- [System] Stopping Vitals Simulator ---")
         await simulator.stop()
 
+# 1. Define your specific allowed origins
+CORS_ORIGINS = [
+    "https://ethio-vitality-ai.vercel.app",
+    "http://localhost:5173",  # Keep this for local development
+]
+
 app = FastAPI(
     title="Ethio-Vitality AI",
     description="B2B2C wellness API — SQLite + JWT + RBAC",
     version="3.0.0",
-    lifespan=lifespan,
+    # lifespan=lifespan,
 )
 
-# Add Middleware
-app.add_middleware(AuthMiddleware)
+# 2. Add AuthMiddleware
+# app.add_middleware(AuthMiddleware)
+
+# 3. Corrected CORS Middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=CORS_ORIGINS,           # Explicit list, NO wildcard "*"
+    allow_credentials=True,               # Now valid because origins are explicit
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Role", "Accept"],
     expose_headers=["*"],
