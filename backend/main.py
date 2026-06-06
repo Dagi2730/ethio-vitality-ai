@@ -3,8 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
-# 1. Load environment variables immediately
-# Ensure .env is in the 'backend' folder
+# 1. Load environment variables
 load_dotenv(override=True)
 
 from fastapi import FastAPI
@@ -20,12 +19,6 @@ from middleware.auth_middleware import AuthMiddleware
 from services.reminder_service import reminder_scheduler_loop
 from services.simulation import simulator
 
-# Configure allowed origins for CORS
-CORS_ORIGINS = [
-    "import.meta.env.VITE_API_URL",
-    "http://localhost:5173",
-]
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup tasks
@@ -40,7 +33,7 @@ async def lifespan(app: FastAPI):
     else:
         print("--- [System] Hardware mode ENABLED: Expecting Serial Data ---")
         
-    # Start background scheduler for notifications/reminders
+    # Start background scheduler
     asyncio.create_task(reminder_scheduler_loop())
     
     yield
@@ -50,20 +43,30 @@ async def lifespan(app: FastAPI):
         print("--- [System] Stopping Vitals Simulator ---")
         await simulator.stop()
 
+# Define allowed origins
 CORS_ORIGINS = [
     "https://ethio-vitality-ai.vercel.app",
     "http://localhost:5173",
 ]
 
-app = FastAPI(title="Ethio-Vitality AI")
+app = FastAPI(
+    title="Ethio-Vitality AI",
+    description="B2B2C wellness API — SQLite + JWT + RBAC",
+    version="3.0.0",
+    lifespan=lifespan,
+)
 
+# Add Middleware - CORS first!
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,           # Matches your frontend URL
-    allow_credentials=True,               # Required for Auth/JWT
-    allow_methods=["*"],                  # Allows GET, POST, OPTIONS, etc.
-    allow_headers=["*"],                  # Allows Authorization headers
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+# Add your Custom Auth Middleware
+app.add_middleware(AuthMiddleware)
 
 # Include Routers
 app.include_router(auth_router)
@@ -71,4 +74,5 @@ app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="import.meta.env.VITE_API_URL", port=8000, reload=True)
+    # Use 0.0.0.0 to bind to all network interfaces for external access
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
