@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-INGEST_URL = os.getenv("INGEST_URL", "http://127.0.0.1:8000/api/v1/ingest")
+INGEST_URL = os.getenv("INGEST_URL", "import.meta.env.VITE_API_URL")
 DEMO_TOKEN = os.getenv("BRIDGE_TOKEN", "")
 
 

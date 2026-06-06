@@ -115,7 +115,7 @@ uvicorn main:app --reload
 cd frontend && npm install && npm run dev
 ```
 
-API base URL defaults to `http://127.0.0.1:8000` (`frontend/.env.development`).  
+API base URL defaults to `import.meta.env.VITE_API_URL` (`frontend/.env.development`).  
 Restart `npm run dev` after changing env vars.
 
 - Personal: http://localhost:5173/personal  

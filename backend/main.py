@@ -22,10 +22,8 @@ from services.simulation import simulator
 
 # Configure allowed origins for CORS
 CORS_ORIGINS = [
+    "import.meta.env.VITE_API_URL",
     "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:4173",
-    "http://127.0.0.1:4173",
 ]
 
 @asynccontextmanager
@@ -73,4 +71,4 @@ app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="import.meta.env.VITE_API_URL", port=8000, reload=True)

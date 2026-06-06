@@ -9,7 +9,7 @@ st.title("Ethio-Vitality AI Dashboard")
 def fetch_data():
     try:
         # Note: Ensure backend is running and reachable
-        response = requests.get("http://127.0.0.1:8000/api/v1/sensors/latest", timeout=5)
+        response = requests.get("import.meta.env.VITE_API_URL", timeout=5)
         return response.json()
     except Exception:
         return {"heart_rate": 0, "stress_level": 0}
@@ -51,7 +51,7 @@ if prompt := st.sidebar.chat_input("Ask me about your health..."):
         
         try:
             payload = {"input": prompt, "lang": "am"}
-            response = requests.post("http://127.0.0.1:8000/api/v1/chat", json=payload, timeout=15)
+            response = requests.post("import.meta.env.VITE_API_URL", json=payload, timeout=15)
             response.raise_for_status()
             bot_reply = response.json().get("reply", "No response content received.")
         except Exception as e:
