@@ -5,6 +5,7 @@ import { getHomeForRole, redirectPathForRole } from "../config/roleRoutes";
 import { SanctuaryMesh } from "../components/sanctuary/SanctuaryMesh";
 import { useAuthStore, type AppRole } from "../store/authStore";
 
+// @ts-ignore
 const DEMO_ACCOUNTS = [
   { email: "user@ethio.dev", password: "user123", label: "Personal · Your Space", role: "user" as AppRole },
   { email: "hr@ethio.dev", password: "hr123", label: "HR · Workplace", role: "hr" as AppRole },
@@ -30,14 +31,10 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check health once on mount
     checkBackendHealth().then(setBackendOk).catch(() => setBackendOk(false));
-    
-    // Interval check
     const id = setInterval(() => {
       checkBackendHealth().then(setBackendOk).catch(() => setBackendOk(false));
     }, 15000);
-    
     return () => clearInterval(id);
   }, []);
 
@@ -68,7 +65,6 @@ export function LoginPage() {
     const pw = creds?.password ?? password;
     
     try {
-      // Logic removed: No longer blocking submission if backend status is pending
       if (mode === "signup" && !creds) {
         const res = await apiSignup(em, pw, name, department);
         await completeAuth(res);
@@ -101,85 +97,51 @@ export function LoginPage() {
 
         <div className="glass-card">
           <div className="flex gap-2 rounded-2xl bg-white/50 p-1">
-            <button
-              type="button"
-              onClick={() => setMode("login")}
-              className={`flex-1 rounded-xl py-2 text-sm font-medium transition ${
-                mode === "login" ? "bg-teal text-white" : "text-ink-muted"
-              }`}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("signup")}
-              className={`flex-1 rounded-xl py-2 text-sm font-medium transition ${
-                mode === "signup" ? "bg-teal text-white" : "text-ink-muted"
-              }`}
-            >
-              Sign up
-            </button>
+            <button type="button" onClick={() => setMode("login")} className={`flex-1 rounded-xl py-2 text-sm font-medium transition ${mode === "login" ? "bg-teal text-white" : "text-ink-muted"}`}>Sign in</button>
+            <button type="button" onClick={() => setMode("signup")} className={`flex-1 rounded-xl py-2 text-sm font-medium transition ${mode === "signup" ? "bg-teal text-white" : "text-ink-muted"}`}>Sign up</button>
           </div>
 
           <h1 className="mt-4 font-display text-xl font-medium text-ink">
             {mode === "login" ? "Welcome back" : "Create your account"}
           </h1>
           
-          {/* Status indicators */}
-          {backendOk === false && (
-            <p className="mt-2 text-xs text-amber-600">Note: Connection to server is currently unstable.</p>
-          )}
+          {backendOk === false && <p className="mt-2 text-xs text-amber-600">Note: Connection to server is currently unstable.</p>}
 
           <form onSubmit={(e) => submit(e)} className="mt-6 space-y-4">
             {mode === "signup" && (
               <>
                 <div>
                   <label className="text-xs font-medium text-ink-muted">Full name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40"
-                    required
-                  />
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40" required />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-ink-muted">Department</label>
-                  <input
-                    type="text"
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40"
-                  />
+                  <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40" />
                 </div>
               </>
             )}
             <div>
               <label className="text-xs font-medium text-ink-muted">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40"
-                required
-              />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40" required />
             </div>
             <div>
               <label className="text-xs font-medium text-ink-muted">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={mode === "signup" ? 8 : 4}
-                className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40"
-                required
-              />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={mode === "signup" ? 8 : 4} className="mt-1 w-full rounded-2xl border border-warm-border bg-white/80 px-4 py-3 text-sm outline-none focus:border-teal/40" required />
             </div>
             {error && <p className="text-sm text-rose-600">{error}</p>}
-            <button type="submit" disabled={loading} className="btn-primary w-full py-3">
-              {loading ? "Processing..." : mode === "signup" ? "Create account" : "Begin your journey"}
-            </button>
+            <button type="submit" disabled={loading} className="btn-primary w-full py-3">{loading ? "Processing..." : mode === "signup" ? "Create account" : "Begin your journey"}</button>
           </form>
+
+          {mode === "login" && (
+            <div className="mt-6 space-y-2">
+              <p className="text-center text-xs text-ink-muted">Demo accounts</p>
+              {DEMO_ACCOUNTS.map((d) => (
+                <button key={d.email} type="button" onClick={(e) => submit(e, { email: d.email, password: d.password })} className="w-full rounded-2xl border border-white/60 bg-white/50 px-4 py-2 text-left text-xs">
+                  <span className="font-medium text-ink">{d.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
