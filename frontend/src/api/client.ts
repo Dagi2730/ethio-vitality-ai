@@ -112,6 +112,17 @@ async function apiFetch(path: string, init?: RequestInit) {
   return res.json();
 }
 
+export async function deleteCommunityPost(postId: string) {
+  return apiFetch(`/api/v1/community/posts/${postId}`, { method: "DELETE" });
+}
+
+export async function updateCommunityPost(postId: string, content: string) {
+  return apiFetch(`/api/v1/community/posts/${postId}`, {
+    method: "PUT",
+    body: JSON.stringify({ content }),
+  });
+}
+
 export type MoodSentiment =
   | "great"
   | "okay"
@@ -188,6 +199,7 @@ export type ActionPlan = {
 
 export type CommunityPost = {
   id: string;
+  author_id: string; 
   author: string;
   content: string;
   category: string;

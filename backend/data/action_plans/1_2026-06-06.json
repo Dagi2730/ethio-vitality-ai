@@ -1,0 +1,69 @@
+{
+  "date": "2026-06-06",
+  "user_id": 1,
+  "generated_at": "2026-06-05T22:03:39.834383+00:00",
+  "status_summary": "You've had several difficult days recently. Today is about gentle momentum.",
+  "active_conditions": [
+    "low_mood",
+    "good_status"
+  ],
+  "total_minutes": 41,
+  "actions": [
+    {
+      "id": "call_someone",
+      "title": "Call Someone You Trust",
+      "description": "A 5-minute check-in call is one of the strongest mood interventions.",
+      "duration": 10,
+      "category": "social",
+      "emoji": "\ud83d\udcde",
+      "completed": false,
+      "reminder_sent": true
+    },
+    {
+      "id": "gratitude_3",
+      "title": "3 Things You're Grateful For",
+      "description": "Write 3 specific things from today \u2014 specificity makes it work.",
+      "duration": 5,
+      "category": "journaling",
+      "emoji": "\ud83d\ude4f",
+      "completed": false,
+      "reminder_sent": false
+    },
+    {
+      "id": "habit_stack",
+      "title": "Add One Micro-Habit",
+      "description": "Attach a tiny habit to something you already do daily.",
+      "duration": 5,
+      "category": "lifestyle",
+      "emoji": "\u26a1",
+      "completed": false,
+      "reminder_sent": false
+    },
+    {
+      "id": "water_intake",
+      "title": "Drink a Full Glass of Water",
+      "description": "Mild dehydration increases perceived stress.",
+      "duration": 1,
+      "category": "nutrition",
+      "emoji": "\ud83e\udd64",
+      "completed": false,
+      "reminder_sent": false
+    },
+    {
+      "id": "injera_mindful",
+      "title": "Eat One Meal Without Your Phone",
+      "description": "Mindful eating reduces stress hormones.",
+      "duration": 20,
+      "category": "nutrition",
+      "emoji": "\ud83c\udf7d\ufe0f",
+      "completed": false,
+      "reminder_sent": false
+    }
+  ],
+  "vitals_snapshot": {
+    "heart_rate": 69,
+    "stress_level": 18,
+    "spo2": 98.4,
+    "mood": "calm"
+  }
+}

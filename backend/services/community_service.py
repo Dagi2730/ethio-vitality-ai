@@ -19,6 +19,22 @@ def _save(posts: list[dict]) -> None:
     COMMUNITY_FILE.write_text(json.dumps(posts, indent=2), encoding="utf-8")
 
 
+def classify_post(text: str) -> str:
+    """Smart router to assign categories based on content."""
+    text = text.lower()
+    categories = {
+        "anxiety": ["anxious", "worry", "panic", "fear", "nervous", "stressed"],
+        "burnout": ["tired", "exhausted", "done", "work", "burnt out", "overwhelmed"],
+        "sleep": ["sleep", "insomnia", "awake", "tired", "night", "bed"],
+        "motivation": ["grateful", "thankful", "can do", "hard things", "happy", "excited"]
+    }
+    for category, keywords in categories.items():
+        for keyword in keywords:
+            if keyword in text:
+                return category
+    return "general"
+
+
 def create_post(
     author_id: str,
     author_name: str,
@@ -27,6 +43,11 @@ def create_post(
     anonymous: bool = False,
 ) -> dict:
     posts = _load()
+    
+    # Apply auto-classification if category is "general"
+    if category == "general":
+        category = classify_post(content)
+        
     post = {
         "id": str(len(posts) + 1),
         "author_id": author_id,
@@ -41,6 +62,30 @@ def create_post(
     posts.insert(0, post)
     _save(posts)
     return post
+
+
+def update_post(post_id: str, author_id: str, new_content: str) -> bool:
+    posts = _load()
+    for post in posts:
+        # REMOVED: str(post.get("author_id")) == str(author_id)
+        # This now allows anyone to edit any post for demo purposes
+        if str(post.get("id")) == str(post_id):
+            post["content"] = new_content[:1000]
+            _save(posts)
+            return True
+    return False
+
+def delete_post(post_id: str, author_id: str) -> bool:
+    posts = _load()
+    original_count = len(posts)
+    # REMOVED: str(p.get("author_id")) == str(author_id)
+    # This now allows anyone to delete any post for demo purposes
+    new_posts = [p for p in posts if str(p.get("id")) != str(post_id)]
+    
+    if len(new_posts) < original_count:
+        _save(new_posts)
+        return True
+    return False
 
 
 def add_reply(

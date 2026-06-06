@@ -26,7 +26,6 @@ from services.activity import log_user_activity
 from services.ai_coach import get_psychologist_response
 from services.analytics import aggregate_business_insights
 from services.anomalies import detect_anomalies, latest_anomaly_prompt
-from services.insights_engine import generate_personal_insights
 from services.journal_service import create_journal_entry
 from services.language import detect_language
 from services.rbac import (
@@ -45,7 +44,14 @@ from services.action_plan_service import (
     get_todays_plan,
     mark_action_complete,
 )
-from services.community_service import add_reply, create_post, get_posts, like_post
+from services.community_service import (
+    add_reply, 
+    create_post, 
+    get_posts, 
+    like_post, 
+    delete_post, 
+    update_post
+)
 from services.reminder_service import trigger_reminder_for_user
 from services.routine_builder import build_daily_routine
 from services.triggers import detect_triggers, narrative_stage
@@ -115,6 +121,37 @@ async def personal_dashboard(
         "wellness_score": _wellness_score(vitals),
     }
 
+# --- COMMUNITY ROUTES ---
+
+@router.get("/community/posts")
+async def fetch_posts(category: str = "all"):
+    return {"posts": get_posts(category=category)}
+
+@router.post("/community/posts")
+async def create_new_post(body: CommunityPostBody, user: dict = Depends(get_current_user)):
+    return create_post(str(_uid(user)), user.get("name", "User"), body.content, body.category, body.anonymous)
+
+@router.post("/community/posts/{post_id}/reply")
+async def add_post_reply(post_id: str, body: CommunityReplyBody, user: dict = Depends(get_current_user)):
+    return add_reply(post_id, user.get("name", "User"), body.content, body.anonymous)
+
+@router.post("/community/posts/{post_id}/like")
+async def like_post_route(post_id: str):
+    return {"likes": like_post(post_id)}
+
+@router.delete("/community/posts/{post_id}")
+async def delete_post_route(post_id: str, user: dict = Depends(get_current_user)):
+    # Using _uid(user) to get the string ID
+    if delete_post(post_id, str(_uid(user))):
+        return {"success": True}
+    raise HTTPException(status_code=403, detail="Not authorized to delete this post")
+
+@router.put("/community/posts/{post_id}")
+async def update_post_route(post_id: str, payload: dict, user: dict = Depends(get_current_user)):
+    # Using _uid(user) to get the string ID and payload for content
+    if update_post(post_id, str(_uid(user)), payload.get("content", "")):
+        return {"success": True}
+    raise HTTPException(status_code=403, detail="Not authorized to update this post")
 
 @router.post("/ingest")
 async def ingest_reading(
@@ -419,6 +456,28 @@ async def like_community_post(
 ):
     return {"likes": like_post(post_id)}
 
+@router.delete("/community/posts/{post_id}")
+async def delete_post_route(
+    post_id: str, 
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    # Using str(_uid(user)) to match the ID type in your JSON
+    if delete_post(post_id, str(_uid(user))):
+        return {"success": True}
+    raise HTTPException(status_code=403, detail="Not authorized to delete this post")
+
+@router.put("/community/posts/{post_id}")
+async def update_post_route(
+    post_id: str, 
+    payload: dict, 
+    user: dict = Depends(get_current_user),
+    _: Role = Depends(require_user),
+):
+    # Updating content via payload
+    if update_post(post_id, str(_uid(user)), payload.get("content", "")):
+        return {"success": True}
+    raise HTTPException(status_code=403, detail="Not authorized to update this post")
 
 @router.patch("/habits")
 async def update_habits(

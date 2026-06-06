@@ -1,0 +1,58 @@
+{
+  "date": "2026-06-06",
+  "user_id": 8,
+  "generated_at": "2026-06-05T21:30:56.110032+00:00",
+  "status_summary": "Your vitals look good today. Let's use this energy to build better habits.",
+  "active_conditions": [
+    "good_status"
+  ],
+  "total_minutes": 29,
+  "actions": [
+    {
+      "id": "prayer_moment",
+      "title": "Moment of Prayer or Stillness",
+      "description": "3 minutes of quiet prayer, reflection, or gratitude.",
+      "duration": 3,
+      "category": "spiritual",
+      "emoji": "\ud83d\udd4a\ufe0f",
+      "completed": true,
+      "reminder_sent": false
+    },
+    {
+      "id": "habit_stack",
+      "title": "Add One Micro-Habit",
+      "description": "Attach a tiny habit to something you already do daily.",
+      "duration": 5,
+      "category": "lifestyle",
+      "emoji": "\u26a1",
+      "completed": true,
+      "reminder_sent": false
+    },
+    {
+      "id": "water_intake",
+      "title": "Drink a Full Glass of Water",
+      "description": "Mild dehydration increases perceived stress.",
+      "duration": 1,
+      "category": "nutrition",
+      "emoji": "\ud83e\udd64",
+      "completed": true,
+      "reminder_sent": false
+    },
+    {
+      "id": "injera_mindful",
+      "title": "Eat One Meal Without Your Phone",
+      "description": "Mindful eating reduces stress hormones.",
+      "duration": 20,
+      "category": "nutrition",
+      "emoji": "\ud83c\udf7d\ufe0f",
+      "completed": true,
+      "reminder_sent": false
+    }
+  ],
+  "vitals_snapshot": {
+    "heart_rate": 67,
+    "stress_level": 20,
+    "spo2": 97.7,
+    "mood": "calm"
+  }
+}

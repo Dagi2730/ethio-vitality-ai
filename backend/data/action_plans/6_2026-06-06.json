@@ -1,0 +1,69 @@
+{
+  "date": "2026-06-06",
+  "user_id": 6,
+  "generated_at": "2026-06-06T09:00:07.030992+00:00",
+  "status_summary": "Your oxygen is low (94.0%). Today's plan prioritises breathing and recovery.",
+  "active_conditions": [
+    "high_stress",
+    "low_spo2"
+  ],
+  "total_minutes": 21,
+  "actions": [
+    {
+      "id": "box_breathing",
+      "title": "Box Breathing",
+      "description": "Inhale 4, hold 4, exhale 4, hold 4. Repeat 5 times.",
+      "duration": 5,
+      "category": "breathwork",
+      "emoji": "\ud83e\udec1",
+      "completed": false,
+      "reminder_sent": true
+    },
+    {
+      "id": "deep_breathing_o2",
+      "title": "Oxygen Recovery Breathing",
+      "description": "Open a window. Breathe in 6 counts, out 8. Do for 3 minutes.",
+      "duration": 3,
+      "category": "breathwork",
+      "emoji": "\ud83c\udf2c\ufe0f",
+      "completed": false,
+      "reminder_sent": false
+    },
+    {
+      "id": "cold_water_face",
+      "title": "Cold Water Reset",
+      "description": "Splash cold water on face and wrists for 30 seconds.",
+      "duration": 2,
+      "category": "physical",
+      "emoji": "\ud83d\udca7",
+      "completed": false,
+      "reminder_sent": false
+    },
+    {
+      "id": "stress_journal",
+      "title": "Stress Dump Journal",
+      "description": "Write everything stressing you \u2014 no editing, no judgment.",
+      "duration": 10,
+      "category": "journaling",
+      "emoji": "\ud83d\udcdd",
+      "completed": false,
+      "reminder_sent": false
+    },
+    {
+      "id": "water_intake",
+      "title": "Drink a Full Glass of Water",
+      "description": "Mild dehydration increases perceived stress.",
+      "duration": 1,
+      "category": "nutrition",
+      "emoji": "\ud83e\udd64",
+      "completed": false,
+      "reminder_sent": false
+    }
+  ],
+  "vitals_snapshot": {
+    "heart_rate": 95,
+    "stress_level": 91,
+    "spo2": 94.0,
+    "mood": "anxious"
+  }
+}
