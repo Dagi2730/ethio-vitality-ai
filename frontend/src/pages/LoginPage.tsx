@@ -5,12 +5,12 @@ import { getHomeForRole, redirectPathForRole } from "../config/roleRoutes";
 import { SanctuaryMesh } from "../components/sanctuary/SanctuaryMesh";
 import { useAuthStore, type AppRole } from "../store/authStore";
 
-// @ts-ignore
-const DEMO_ACCOUNTS = [
+
+export const DEMO_ACCOUNTS = [
   { email: "user@ethio.dev", password: "user123", label: "Personal · Your Space", role: "user" as AppRole },
   { email: "hr@ethio.dev", password: "hr123", label: "HR · Workplace", role: "hr" as AppRole },
   { email: "doctor@ethio.dev", password: "doc123", label: "Doctor · Clinical", role: "doctor" as AppRole },
-];
+] as const; // Added 'as const' to lock the values
 
 type Mode = "login" | "signup";
 
